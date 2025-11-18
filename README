@@ -1,0 +1,11 @@
+<h1> TO BUILD </h1>
+from S4-Backend/
+
+> ./gradlew build
+
+
+<h1> TO DEPLOY </h1>
+
+> cd app/src/main/docker
+> cp ../../../build/libs/app.jar .
+> docker compose up
