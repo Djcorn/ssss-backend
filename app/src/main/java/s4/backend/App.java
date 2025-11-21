@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,7 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.SpringApplication;
 
-import s4.backend.PhotoData;
+import s4.backend.repositories.PhotoDataRepository;
+import s4.backend.repositories.PhotoImageRepository;
 
 @RestController
 @SpringBootApplication
@@ -23,22 +25,35 @@ public class App {
     @Autowired 
     private PhotoDataRepository photoDataRepo; 
 
+    @Autowired 
+    private PhotoImageRepository photoImageRepo; 
+
    	@RequestMapping("/")
     public String getGreeting() {
-        return "Hello New World!";
+        return "Hello Full World!";
     }
 
     @PostMapping("/add")
-    public String add(){
-        PhotoData i = new PhotoData();
-        i.setName("test");
+    public String add(@RequestBody PhotoData data){
 
-        photoDataRepo.save(i);
-        return "test image added";
+        System.out.println(data);
+
+        // ** perform verifications here **
+
+        //saved_entity contains inserted data and its new ID so use that for other insertions
+        PhotoData saved_entity = photoDataRepo.save(data);
+        System.out.println(saved_entity);
+        return "full image added";
     }
 
     @RequestMapping("/query")
     public @ResponseBody Iterable<PhotoData> query() {
+        
+        // ** perform verifications here **
+
+       Iterable<PhotoData> datas = photoDataRepo.findAll();
+       Iterable<PhotoImage> images = photoImageRepo.findAll();
+
        return photoDataRepo.findAll();
     }
 

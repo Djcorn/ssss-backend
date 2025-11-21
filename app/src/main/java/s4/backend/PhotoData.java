@@ -6,7 +6,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
+import lombok.Data;
 
+@Data //auto adds getters/setters
 @Entity
 @Table(name = "photo_data")
 public class PhotoData {
@@ -15,14 +17,15 @@ public class PhotoData {
     @GeneratedValue(strategy=GenerationType.SEQUENCE)
     private long id;
 
+    // need to link https://stackoverflow.com/questions/64634166/how-to-link-foreign-key-between-entity-in-spring-boot-data-jpa
+    //@Column(name = "user_id", nullable=false) // ID of user table
+    //private long user_id;
+
+    //@Column(name = "device_id", nullable=false) // ID of device table
+    //private long device_id;
+
     @Column(name = "timestamp")
     private double timestamp;
-
-    @Column(name = "user_id", nullable=false) // ID of user table
-    private long user_id;
-
-    @Column(name = "device_id", nullable=false) // ID of device table
-    private long device_id;
 
     @Column(name = "media_type") 
     private String media_type;
@@ -46,7 +49,7 @@ public class PhotoData {
     private double linear_error;
 
     @Column(name = "resolution")
-    private double resolution;
+    private String resolution;
 
     @Column(name = "zoom")
     private double zoom;
@@ -66,13 +69,9 @@ public class PhotoData {
     @Column(name = "roll")
     private double roll;
 
-    private String name;
+    @Column(name = "lens_type")
+    private String lens_type;
 
-    public void setName(String name){
-        this.name = name;
-    }
-
-    public String getName(){
-        return name;
-    }
+    @Column(name = "location_provider")
+    private String location_provider;
 }

@@ -6,7 +6,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
+import lombok.Data;
 
+@Data //auto adds getters/setters
 @Entity
 @Table(name = "photo_image")
 public class PhotoImage {
@@ -15,10 +17,11 @@ public class PhotoImage {
     @GeneratedValue(strategy=GenerationType.SEQUENCE)
     private long id;
 
-    @Column(name = "photo_data_id", nullable=false)
-    private long photo_data_id;
+    // need to link properly
+    //@Column(name = "photo_data_id", nullable=false)
+    //private long photo_data_id;
 
-    @Column(name = "user_id", nullable=false) // ID of user table
-    private double user_id;
+    @Column(name = "photo_data", nullable=false) 
+    private byte[] photo_data;
 
 }
