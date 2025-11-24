@@ -24,30 +24,46 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import s4.backend.repositories.PhotoDataRepository;
+import s4.backend.repositories.PhotoImageRepository;
+
+
 @RestController
-@RequestMapping("/")
 @SpringBootApplication
 public class App {
     @Autowired 
-    private AppRepository repository; 
+    private PhotoDataRepository photoDataRepo; 
+
+    @Autowired 
+    private PhotoImageRepository photoImageRepo; 
 
    	@RequestMapping("/")
     public String getGreeting() {
-        return "Hello World!";
+        return "Hello Full World!";
     }
 
     @PostMapping("/add")
-    public String add(){
-        Images i = new Images();
-        i.setName("test");
+    public String add(@RequestBody PhotoData data){
 
-        repository.save(i);
-        return "test image added";
+        System.out.println(data);
+
+        // ** perform verifications here **
+
+        //saved_entity contains inserted data and its new ID so use that for other insertions
+        PhotoData saved_entity = photoDataRepo.save(data);
+        System.out.println(saved_entity);
+        return "full image added";
     }
 
     @RequestMapping("/query")
-    public @ResponseBody Iterable<Images> query() {
-       return repository.findAll();
+    public @ResponseBody Iterable<PhotoData> query() {
+        
+        // ** perform verifications here **
+
+       Iterable<PhotoData> datas = photoDataRepo.findAll();
+       Iterable<PhotoImage> images = photoImageRepo.findAll();
+
+       return photoDataRepo.findAll();
     }
 
     @PostMapping("/upload")
