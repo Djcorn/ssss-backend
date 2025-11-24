@@ -5,7 +5,8 @@ services:
       dockerfile: dockerfile
     container_name: app
     ports:
-      - "127.0.0.1:8080:8080" #note that this currently only allows local connections
+    #  - "127.0.0.1:8080:8080" #note that this currently only allows local connections
+      - "0.0.0.0:8080:8080"
     depends_on:
       - db
     environment:
@@ -13,7 +14,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=compose-postgres
       - SPRING_DATASOURCE_PASSWORD=compose-postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-          
+      - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
+      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=100MB         
   db:
     image: 'postgres:13.1-alpine'
     container_name: db

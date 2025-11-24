@@ -4,60 +4,86 @@
 package s4.backend;
 
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RequestBody;
-
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.http.ResponseEntity;
-
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.SpringApplication;
 
-import s4.backend.repositories.PhotoDataRepository;
-import s4.backend.repositories.PhotoImageRepository;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
+@RequestMapping("/")
 @SpringBootApplication
 public class App {
     @Autowired 
-    private PhotoDataRepository photoDataRepo; 
-
-    @Autowired 
-    private PhotoImageRepository photoImageRepo; 
+    private AppRepository repository; 
 
    	@RequestMapping("/")
     public String getGreeting() {
-        return "Hello Full World!";
+        return "Hello World!";
     }
 
     @PostMapping("/add")
-    public String add(@RequestBody PhotoData data){
+    public String add(){
+        Images i = new Images();
+        i.setName("test");
 
-        System.out.println(data);
-
-        // ** perform verifications here **
-
-        //saved_entity contains inserted data and its new ID so use that for other insertions
-        PhotoData saved_entity = photoDataRepo.save(data);
-        System.out.println(saved_entity);
-        return "full image added";
+        repository.save(i);
+        return "test image added";
     }
 
     @RequestMapping("/query")
-    public @ResponseBody Iterable<PhotoData> query() {
-        
-        // ** perform verifications here **
-
-       Iterable<PhotoData> datas = photoDataRepo.findAll();
-       Iterable<PhotoImage> images = photoImageRepo.findAll();
-
-       return photoDataRepo.findAll();
+    public @ResponseBody Iterable<Images> query() {
+       return repository.findAll();
     }
 
+    @PostMapping("/upload")
+    public String uploadData(@RequestPart("json") MultipartFile json, @RequestPart("text") String text, @RequestPart("image") MultipartFile image, 
+    @AuthenticationPrincipal Jwt jwt) throws Exception {
 
+            // Convert MultipartFile -> String
+        String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
+        Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
+        Files.createDirectories(savePath.getParent());
+        Files.write(savePath, image.getBytes());
+        System.out.println(jsonString);
+        System.out.println(text);
+        // Gets all claimns from JWT
+        Map<String,Object> claims = jwt.getClaims();
+        //Creates new map for converting objects to string 
+        Map<String, String> claimsStrings = new HashMap<>();
+        //Creates converts each map entry to string and puts it in the new map
+        for (Map.Entry<String, Object> entry : claims.entrySet()) {
+            claimsStrings.put(entry.getKey(), entry.getValue().toString());
+        }
+        //Hard coded public key
+        String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
+        Instant time = Instant.parse(claimsStrings.get("exp"));
+        //Checks
+        if( claimsStrings.get("aud").equals(realAud) && 
+            claimsStrings.get("iss").equals("https://accounts.google.com") &&
+            claimsStrings.get("email_verified").equals("true") &&
+            Instant.now().compareTo(time) < 0)
+            { 
+            return "Data uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+        }
+        else{
+             return "Data NOT uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+        }
+    }
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
     }
