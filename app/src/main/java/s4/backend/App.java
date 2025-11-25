@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.SpringApplication;
 
+import s4.backend.data.PhotoData;
+import s4.backend.data.PhotoImage;
 import s4.backend.repositories.PhotoDataRepository;
 import s4.backend.repositories.PhotoImageRepository;
 

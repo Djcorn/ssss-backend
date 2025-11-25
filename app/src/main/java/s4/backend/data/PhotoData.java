@@ -1,10 +1,15 @@
-package s4.backend;
+package s4.backend.data;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import lombok.Data;
 
@@ -21,8 +26,8 @@ public class PhotoData {
     //@Column(name = "user_id", nullable=false) // ID of user table
     //private long user_id;
 
-    //@Column(name = "device_id", nullable=false) // ID of device table
-    //private long device_id;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "device_id", referencedColumnName = "id")
 
     @Column(name = "timestamp")
     private double timestamp;
