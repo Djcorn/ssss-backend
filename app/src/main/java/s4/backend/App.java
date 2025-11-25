@@ -25,6 +25,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import s4.backend.data.PhotoData;
+import s4.backend.data.PhotoImage;
 import s4.backend.repositories.PhotoDataRepository;
 import s4.backend.repositories.PhotoImageRepository;
 
