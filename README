@@ -3,9 +3,10 @@ from S4-Backend/
 
 > ./gradlew build
 
-
 <h1> TO DEPLOY </h1>
+
 > docker compose up
 
 <h1> TO SHUTDOWN </h1>
+
 > docker compose down
