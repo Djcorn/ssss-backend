@@ -3,6 +3,10 @@
  */
 package s4.backend;
 
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,11 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.SpringApplication;
+//import org.springframework.security.core.annotation.AuthenticationPrincipal;
+//import org.springframework.security.oauth2.jwt.Jwt;
 
 
 import java.nio.charset.StandardCharsets;
@@ -42,7 +43,19 @@ public class App {
 
    	@RequestMapping("/")
     public String getGreeting() {
-        return "Hello Full World!";
+        System.out.print("Hellow Auth World!");
+        return "Hello Auth World!";
+    }
+
+    @RequestMapping("/query")
+    public @ResponseBody Iterable<PhotoData> query() {
+        
+        // ** perform verifications here **
+
+       Iterable<PhotoData> datas = photoDataRepo.findAll();
+       Iterable<PhotoImage> images = photoImageRepo.findAll();
+
+       return photoDataRepo.findAll();
     }
 
     @PostMapping("/add")
@@ -58,36 +71,61 @@ public class App {
         return "full image added";
     }
 
-    @RequestMapping("/query")
-    public @ResponseBody Iterable<PhotoData> query() {
-        
-        // ** perform verifications here **
 
-       Iterable<PhotoData> datas = photoDataRepo.findAll();
-       Iterable<PhotoImage> images = photoImageRepo.findAll();
+    @PostMapping("/up")
+    public String uploadData(@RequestPart("json") String json, 
+                             @RequestPart("image") MultipartFile image) throws Exception {
 
-       return photoDataRepo.findAll();
-    }
+        //simplified endpoint for testing incoming/outgoing data without envryption
 
-    @PostMapping("/upload")
-    public String uploadData(@RequestPart("json") MultipartFile json, @RequestPart("text") String text, @RequestPart("image") MultipartFile image, 
-    @AuthenticationPrincipal Jwt jwt) throws Exception {
-
-            // Convert MultipartFile -> String
+        // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
         Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
         Files.createDirectories(savePath.getParent());
         Files.write(savePath, image.getBytes());
         System.out.println(jsonString);
-        System.out.println(text);
+
+        return jsonString;                        
+    }
+
+    @PostMapping("/upload")
+    public String uploadData(@RequestPart("json") MultipartFile json, 
+                             @RequestPart("image") MultipartFile image, 
+                             @AuthenticationPrincipal Jwt jwt) throws Exception {
+
+        // Convert MultipartFile -> String
+        String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
+        Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
+        Files.createDirectories(savePath.getParent());
+        Files.write(savePath, image.getBytes());
+        System.out.println(jsonString);
+
         // Gets all claimns from JWT
         Map<String,Object> claims = jwt.getClaims();
+
         //Creates new map for converting objects to string 
         Map<String, String> claimsStrings = new HashMap<>();
+
         //Creates converts each map entry to string and puts it in the new map
         for (Map.Entry<String, Object> entry : claims.entrySet()) {
             claimsStrings.put(entry.getKey(), entry.getValue().toString());
         }
+
+        if(checkJwtValidity(claimsStrings)) { 
+            return "Data uploaded successfully by " + claimsStrings.get("email");
+        }
+        else{
+             return "Data NOT uploaded successfully by " + claimsStrings.get("email");
+        }
+    }
+ 
+    public static void main(String[] args) {
+        SpringApplication.run(App.class, args);
+    }
+
+
+    private boolean checkJwtValidity(Map<String, String> claimsStrings){
+
         //Hard coded public key
         String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
         Instant time = Instant.parse(claimsStrings.get("exp"));
@@ -95,15 +133,12 @@ public class App {
         if( claimsStrings.get("aud").equals(realAud) && 
             claimsStrings.get("iss").equals("https://accounts.google.com") &&
             claimsStrings.get("email_verified").equals("true") &&
-            Instant.now().compareTo(time) < 0)
-            { 
-            return "Data uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+            Instant.now().compareTo(time) < 0) {
+
+            return true;
         }
         else{
-             return "Data NOT uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+            return false;
         }
-    }
-    public static void main(String[] args) {
-        SpringApplication.run(App.class, args);
     }
 }

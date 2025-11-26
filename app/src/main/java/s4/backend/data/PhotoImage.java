@@ -9,6 +9,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
+
 import lombok.Data;
 
 @Data //auto adds getters/setters
@@ -23,7 +24,7 @@ public class PhotoImage {
     // need to link properly
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "photo_data_id", referencedColumnName = "id")
-    private long photo_data_id;
+    private PhotoData photo_data_id;
 
     @Column(name = "photo_data", nullable=false) 
     private byte[] photo_data;
