@@ -87,7 +87,7 @@ public class App {
 
         return jsonString;                        
     }
-
+/*
     @PostMapping("/upload")
     public String uploadData(@RequestPart("json") MultipartFile json, 
                              @RequestPart("image") MultipartFile image, 
@@ -118,6 +118,7 @@ public class App {
              return "Data NOT uploaded successfully by " + claimsStrings.get("email");
         }
     }
+        */
  
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
