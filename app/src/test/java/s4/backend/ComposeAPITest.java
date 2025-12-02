@@ -1,8 +1,13 @@
 package s4.backend;
 
 
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -13,16 +18,23 @@ import org.springframework.http.*;
 //import org.springframework.util.MultiValueMap;
 //import org.springframework.web.client.RestTemplate;
 
-
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.DynamicTest.stream;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 
 @Testcontainers
@@ -34,24 +46,23 @@ public class ComposeAPITest {
     private static final ComposeContainer composeContainer =
             new ComposeContainer(new File("/home/downsd/repos/ssss-backend/docker-compose.yml"))
                     .withExposedService(server_name, 
-                            8080,
-                            Wait.forListeningPort())
+                        8080,
+                        Wait.forListeningPort())
+                    .withCopyFilesInContainer("/home/downsd/repos/ssss-backend/app/src/test/resources/ai.png")
                     .withExposedService("db", 5432);
 
-    @Test
-    void contextLoads() {
-        System.out.println("Docker Compose container is up and running!");
-    }
- 
-    @Test
-    void testSpringBootAppIsRunning() {
-        String host = composeContainer.getServiceHost(server_name, 8080);
-        Integer port = composeContainer.getServicePort(server_name, 8080);
-
-        System.out.println("Spring Boot app is running at: " + host + ":" + port);
+    @AfterAll
+    static void PostTest()
+    {
+        String logs = composeContainer.getContainerByServiceName(server_name)
+            .get()
+            .getLogs();
+        System.out.println(logs);
     }
 
     @Test 
+    @Order(1)
+    @DisplayName("Should use the docker compose file to open the app and data base")
     void apiUpTest(){
         String host = composeContainer.getServiceHost(server_name, 8080);
         Integer port = composeContainer.getServicePort(server_name, 8080);
@@ -60,8 +71,41 @@ public class ComposeAPITest {
     }
 
     @Test
+    @Order(2)
+    @DisplayName("Should use the \\up REST api to add to the database")
     void testPostMultipartFormData() {
+        composeContainer.withLogConsumer(server_name, new Slf4jLogConsumer(LoggerFactory.getLogger("UnitTestContainer")));   
+
+        ResponseEntity<String> response = uploadData();
+
+        assertEquals(response.getStatusCode().value(),200);
+        assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
+
+        System.out.println(response.getBody());
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("Should use the \\query REST api to query the database")
+    void testQuery() throws IOException{
         String host = composeContainer.getServiceHost(server_name, 8080);
+        Integer port = composeContainer.getServicePort(server_name, 8080);
+        String url = "http://" + host + ":" + port + "/query"; // your endpoint
+
+        uploadData();
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.getForEntity(url,  String.class);
+
+        assertEquals(response.getStatusCode().value(),200);
+
+        System.out.println(response.getBody());        
+    }
+
+    // uploads dummy data
+    ResponseEntity<String> uploadData(){
+                String host = composeContainer.getServiceHost(server_name, 8080);
         Integer port = composeContainer.getServicePort(server_name, 8080);
         String url = "http://" + host + ":" + port + "/up"; // your endpoint
 
@@ -89,10 +133,7 @@ public class ComposeAPITest {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
-        assertEquals(response.getStatusCode().value(),200);
-        assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
+        return response;
 
-        System.out.println("Response status: " + response.getStatusCode());
-        System.out.println("Response body: " + response.getBody());
     }
 }

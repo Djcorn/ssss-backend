@@ -6,6 +6,10 @@ package s4.backend;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -17,14 +21,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 //import org.springframework.security.core.annotation.AuthenticationPrincipal;
 //import org.springframework.security.oauth2.jwt.Jwt;
 
-
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import s4.backend.data.PhotoData;
 import s4.backend.data.PhotoImage;
@@ -41,6 +49,8 @@ public class App {
     @Autowired 
     private PhotoImageRepository photoImageRepo; 
 
+    private Path upload_directory = Paths.get(System.getProperty("user.dir")+"/uploads/");
+
    	@RequestMapping("/")
     public String getGreeting() {
         System.out.print("Hellow Auth World!");
@@ -48,14 +58,39 @@ public class App {
     }
 
     @RequestMapping("/query")
-    public @ResponseBody Iterable<PhotoData> query() {
+    public @ResponseBody ResponseEntity<ByteArrayResource> query() throws IOException {
         
         // ** perform verifications here **
 
-       Iterable<PhotoData> datas = photoDataRepo.findAll();
-       Iterable<PhotoImage> images = photoImageRepo.findAll();
+        Iterable<PhotoData> datas = photoDataRepo.findAll();
+        Iterable<PhotoImage> images = photoImageRepo.findAll();
 
-       return photoDataRepo.findAll();
+        if (Files.notExists(upload_directory)){
+            Files.createDirectories(upload_directory);
+        }
+
+
+        List<Path> result;
+        try (Stream<Path> paths = Files.walk(upload_directory)) {
+            result = paths
+                .filter(Files::isRegularFile)
+                    .collect(Collectors.toList());
+        } 
+        System.err.println(result);
+
+        File file = new File(result.get(0).toString());        
+        Path path = Paths.get(file.getAbsolutePath());
+        ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+        HttpHeaders headers = new HttpHeaders(); 
+        String attachmentHeader = "attachment; filename="+file.getName();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, attachmentHeader);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.length())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
+
     }
 
     @PostMapping("/add")
@@ -80,10 +115,15 @@ public class App {
 
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
-        Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
-        Files.createDirectories(savePath.getParent());
+        Path savePath = Paths.get(System.getProperty("user.dir")+"/uploads/" + image.getOriginalFilename());
+        
+        if (Files.notExists(upload_directory)){
+            Files.createDirectories(upload_directory);
+        }
+
         Files.write(savePath, image.getBytes());
         System.out.println(jsonString);
+        System.out.println(image.getBytes());
 
         return jsonString;                        
     }
