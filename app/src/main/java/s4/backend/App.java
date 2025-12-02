@@ -4,6 +4,8 @@
 package s4.backend;
 
 
+import org.apache.commons.io.IOUtils;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.io.ByteArrayResource;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +24,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 //import org.springframework.security.core.annotation.AuthenticationPrincipal;
 //import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import s4.backend.data.PhotoData;
 import s4.backend.data.PhotoImage;
@@ -57,8 +65,8 @@ public class App {
         return "Hello Auth World!";
     }
 
-    @RequestMapping("/query")
-    public @ResponseBody ResponseEntity<ByteArrayResource> query() throws IOException {
+    @GetMapping(value="/query", produces="application/zip")
+    public @ResponseBody ResponseEntity<byte[]> query() throws IOException {
         
         // ** perform verifications here **
 
@@ -78,19 +86,31 @@ public class App {
         } 
         System.err.println(result);
 
-        File file = new File(result.get(0).toString());        
-        Path path = Paths.get(file.getAbsolutePath());
-        ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
-        HttpHeaders headers = new HttpHeaders(); 
-        String attachmentHeader = "attachment; filename="+file.getName();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, attachmentHeader);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(byteArrayOutputStream);
+        ZipOutputStream zos = new ZipOutputStream(bufferedOutputStream);
+        
+        for (Path path : result){
+            File file = new File(path.toString());
+            zos.putNextEntry(new ZipEntry(file.getName()));
+            FileInputStream fileInputStream = new FileInputStream(file);
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .contentLength(file.length())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource);
+            IOUtils.copy(fileInputStream, zos);
 
+            fileInputStream.close();
+            zos.closeEntry();
+        }
+
+        zos.finish();
+        zos.flush();
+        IOUtils.closeQuietly(zos);
+        IOUtils.closeQuietly(bufferedOutputStream);
+        IOUtils.closeQuietly(byteArrayOutputStream);
+        
+        return ResponseEntity
+          .ok()
+          .header("Content-Disposition", "attachment; filename=\"files.zip\"")
+          .body(byteArrayOutputStream.toByteArray());
     }
 
     @PostMapping("/add")

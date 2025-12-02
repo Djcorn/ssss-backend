@@ -30,12 +30,20 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.DynamicTest.stream;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Testcontainers
 public class ComposeAPITest {
@@ -96,11 +104,30 @@ public class ComposeAPITest {
 
         // Send the request
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url,  String.class);
+        ResponseEntity<byte[]> response = restTemplate.getForEntity(url,  byte[].class);
 
         assertEquals(response.getStatusCode().value(),200);
 
-        System.out.println(response.getBody());        
+        System.out.println(response.getBody());      
+        
+        InputStream byteStream = new ByteArrayInputStream(response.getBody());
+        ZipInputStream zipStream = new ZipInputStream(byteStream);
+
+        List<String> fileNames = new ArrayList<>();
+        ZipEntry entry;
+        byte[] buffer = new byte[1024];
+        while ((entry = zipStream.getNextEntry()) != null) {
+            fileNames.add(entry.getName());
+            FileOutputStream fos = new FileOutputStream("/home/downsd/repos/ssss-backend/app/src/test/resources/test.png");
+            
+            int len;
+            while((len = zipStream.read(buffer)) > 0){
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+        }
+
+        System.out.println(fileNames);
     }
 
     // uploads dummy data
