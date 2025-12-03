@@ -8,9 +8,6 @@ import org.apache.commons.io.IOUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,9 +17,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import org.springframework.web.bind.annotation.ResponseBody;
 //import org.springframework.security.core.annotation.AuthenticationPrincipal;
 //import org.springframework.security.oauth2.jwt.Jwt;
+
+import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,7 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,9 +42,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import s4.backend.data.PhotoData;
-import s4.backend.data.PhotoImage;
 import s4.backend.repositories.PhotoDataRepository;
-import s4.backend.repositories.PhotoImageRepository;
 
 
 @RestController
@@ -54,29 +51,35 @@ public class App {
     @Autowired 
     private PhotoDataRepository photoDataRepo; 
 
-    @Autowired 
-    private PhotoImageRepository photoImageRepo; 
+    private Path upload_directory = Paths.get(System.getProperty("user.dir")+"/uploads");
 
-    private Path upload_directory = Paths.get(System.getProperty("user.dir")+"/uploads/");
-
+    // TODO: delete
    	@RequestMapping("/")
     public String getGreeting() {
-        System.out.print("Hellow Auth World!");
-        return "Hello Auth World!";
+        System.out.print("Hello World!");
+        return "Hello World!";
     }
 
-    @GetMapping(value="/query", produces="application/zip")
-    public @ResponseBody ResponseEntity<byte[]> query() throws IOException {
+    // TODO: add filter parameters
+    @GetMapping(value="/getimagesdata")
+    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData() throws IOException {
+
+        // ** perform verifications here **
+        return ResponseEntity
+          .ok()
+          .body(photoDataRepo.findAll()); 
+    }
+
+    // TODO: add filter parameters
+    @GetMapping(value="/getimages", produces="application/zip")
+    public @ResponseBody ResponseEntity<byte[]> getImages() throws IOException {
         
         // ** perform verifications here **
 
-        Iterable<PhotoData> datas = photoDataRepo.findAll();
-        Iterable<PhotoImage> images = photoImageRepo.findAll();
-
+        // this avoids an error on a query with no data
         if (Files.notExists(upload_directory)){
             Files.createDirectories(upload_directory);
         }
-
 
         List<Path> result;
         try (Stream<Path> paths = Files.walk(upload_directory)) {
@@ -84,7 +87,6 @@ public class App {
                 .filter(Files::isRegularFile)
                     .collect(Collectors.toList());
         } 
-        System.err.println(result);
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(byteArrayOutputStream);
@@ -109,43 +111,20 @@ public class App {
         
         return ResponseEntity
           .ok()
-          .header("Content-Disposition", "attachment; filename=\"files.zip\"")
+          .header("Content-Disposition", "attachment; filename=\"image_files.zip\"")
           .body(byteArrayOutputStream.toByteArray());
     }
 
-    @PostMapping("/add")
-    public String add(@RequestBody PhotoData data){
-
-        System.out.println(data);
-
-        // ** perform verifications here **
-
-        //saved_entity contains inserted data and its new ID so use that for other insertions
-        PhotoData saved_entity = photoDataRepo.save(data);
-        System.out.println(saved_entity);
-        return "full image added";
-    }
-
-
+    // this is just /upload without the authentication
     @PostMapping("/up")
     public String uploadData(@RequestPart("json") String json, 
                              @RequestPart("image") MultipartFile image) throws Exception {
 
-        //simplified endpoint for testing incoming/outgoing data without envryption
-
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
-        Path savePath = Paths.get(System.getProperty("user.dir")+"/uploads/" + image.getOriginalFilename());
-        
-        if (Files.notExists(upload_directory)){
-            Files.createDirectories(upload_directory);
-        }
 
-        Files.write(savePath, image.getBytes());
-        System.out.println(jsonString);
-        System.out.println(image.getBytes());
-
-        return jsonString;                        
+        // TODO: currently returns a debug string. need to change, probably to success/fail
+        return uploadImageAndData(jsonString, image);                        
     }
 /*
     @PostMapping("/upload")
@@ -201,5 +180,38 @@ public class App {
         else{
             return false;
         }
+    }
+
+        private String uploadImageAndData(String jsonString, MultipartFile image) throws IOException
+    {
+        StringBuilder debug = new StringBuilder();
+        JSONObject jsonObj = new JSONObject(jsonString.toString());
+
+        PhotoData data = new PhotoData(jsonObj);
+
+        //saved_entity contains inserted data and its new ID so use that for other insertions
+        PhotoData saved_entity = photoDataRepo.save(data);
+        String image_name = upload_directory + "//" + Long.toString(saved_entity.getId()) + ".png";
+
+        if (Files.notExists(upload_directory)){
+            Files.createDirectories(upload_directory);
+        }
+
+        Files.write(Paths.get(image_name), image.getBytes());
+
+        List<Path> result;
+        try (Stream<Path> paths = Files.walk(upload_directory)) {
+            result = paths
+                .filter(Files::isRegularFile)
+                    .collect(Collectors.toList());
+        } 
+
+        // TODO: delete and swap to success/fail when finished with authentication
+        debug.append(saved_entity.toString() + " | ");
+        debug.append(result.toString() + " | ");
+        debug.append(image.getBytes().length + " | ");
+        debug.append(Paths.get(image_name).toString() + " | ");
+
+        return debug.toString();
     }
 }

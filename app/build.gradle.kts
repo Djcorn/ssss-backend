@@ -19,6 +19,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jdbc:3.5.7")
     implementation("org.springframework.boot:spring-boot-starter-web:3.5.7")
     implementation("commons-io:commons-io:2.16.1")
+    implementation("org.json:json:20240303")
     //implementation("org.springframework.boot:spring-boot-starter-security:3.5.7")
     //implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.7")
 
@@ -35,6 +36,7 @@ dependencies {
     testImplementation("javax.annotation:javax.annotation-api:1.3.2")
     testImplementation("javax.activation:javax.activation-api:1.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testImplementation("commons-io:commons-io:2.16.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.2")
