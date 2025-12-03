@@ -17,10 +17,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import org.springframework.web.bind.annotation.ResponseBody;
-//import org.springframework.security.core.annotation.AuthenticationPrincipal;
-//import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import org.json.JSONObject;
 
@@ -118,7 +117,8 @@ public class App {
     // this is just /upload without the authentication
     @PostMapping("/up")
     public String uploadData(@RequestPart("json") String json, 
-                             @RequestPart("image") MultipartFile image) throws Exception {
+                             @RequestPart("image") MultipartFile image, 
+                             @AuthenticationPrincipal Jwt jwt) throws Exception {
 
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);

@@ -20,8 +20,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web:3.5.7")
     implementation("commons-io:commons-io:2.16.1")
     implementation("org.json:json:20240303")
-    //implementation("org.springframework.boot:spring-boot-starter-security:3.5.7")
-    //implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.7")
+    implementation("org.springframework.boot:spring-boot-starter-security:3.5.7")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.7")
+    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
@@ -37,9 +40,12 @@ dependencies {
     testImplementation("javax.activation:javax.activation-api:1.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testImplementation("commons-io:commons-io:2.16.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation("io.jsonwebtoken:jjwt-api:0.13.0")
 
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.2")
+    testRuntimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    testRuntimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 
     implementation(libs.guava)
 }

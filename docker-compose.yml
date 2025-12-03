@@ -8,12 +8,14 @@ services:
     depends_on:
       - db
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/compose-postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/compose-postgres 
       - SPRING_DATASOURCE_USERNAME=compose-postgres
       - SPRING_DATASOURCE_PASSWORD=compose-postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=100MB         
+  
+  # look at a private network for this to ensure no web access
   db:
     image: 'postgres:13.1-alpine'
     environment:

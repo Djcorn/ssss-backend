@@ -1,5 +1,9 @@
 package s4.backend;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 
 import org.apache.commons.io.FileUtils;
 
@@ -25,12 +29,14 @@ import s4.backend.data.PhotoData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -96,9 +102,16 @@ public class FunctionalTest {
 
         uploadData();
 
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
         // Send the request
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<byte[]> response = restTemplate.getForEntity(url,  byte[].class);
+        ResponseEntity<byte[]> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, byte[].class);
+        //restTemplate.exchange(url,  HttpMethod.GET, requestEntity, byte[].class);
 
         assertEquals(response.getStatusCode().value(),200);
         
@@ -144,10 +157,17 @@ public class FunctionalTest {
 
         //uploadData();
 
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+
         // Send the request
         RestTemplate restTemplate = new RestTemplate();
         ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
-        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(url,  HttpMethod.GET, null, responseType);
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, responseType);
 
         assertEquals(response.getStatusCode().value(),200);
 
@@ -159,7 +179,7 @@ public class FunctionalTest {
     }
 
     // uploads dummy data
-    ResponseEntity<String> uploadData(){
+    private ResponseEntity<String> uploadData(){
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + upload_enpoint; 
@@ -167,9 +187,9 @@ public class FunctionalTest {
 
         // Create the JSON part
         String jsonString = createPhotoJsonData();
-        HttpHeaders jsonHeaders = new HttpHeaders();
-        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> jsonPart = new HttpEntity<>(jsonString, jsonHeaders);
+        //HttpHeaders jsonHeaders = new HttpHeaders();
+        //jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+        //HttpEntity<String> jsonPart = new HttpEntity<>(jsonString, jsonHeaders);
 
         // Create the file part
         File file = new File(test_image); 
@@ -178,11 +198,13 @@ public class FunctionalTest {
 
         // Build the multipart request
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("json", jsonPart); // JSON part
+        body.add("json", jsonString); //jsonPart); // JSON part
         body.add("image", fileResource); // file part
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
@@ -194,9 +216,23 @@ public class FunctionalTest {
 
     }
 
+    private String generateJwtToken() {
+        // Use a secure key - in production, load this from configuration
+        //String secretKey = "yoursecretkeythatisatleast256bitslongforhs256";
+        byte[] keyBytes = Decoders.BASE64.decode("c2VjdXJlc2VjdXJlc2VjdXJlc2VjcmV0c2VjcmV0a2V5Cg==");
+
+
+        return Jwts.builder()
+            .subject("testuser")
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hour expiration
+            .claim("scope", "read write")
+            .signWith(Keys.hmacShaKeyFor(keyBytes), SignatureAlgorithm.HS256)
+            .compact();
+    }
+
 
     private String createPhotoJsonData(){
-
         String jsonString = "{\r\n" + //
                         "    \"device_id\": 0,\r\n" + //
                         "    \"timestamp\": 10,\r\n" + //
