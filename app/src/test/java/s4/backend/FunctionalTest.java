@@ -45,8 +45,8 @@ public class FunctionalTest {
     private static final int APP_PORT = 8080;
     private static final int DB_PORT = 5432;
 
-    private static final String test_image = "/home/downsd/repos/ssss-backend/app/src/test/resources/ai.png";
-    private static final String replicated_image = "/home/downsd/repos/ssss-backend/app/src/test/resources/test.png";
+    private static final String test_image = "src/test/resources/ai.png";
+    private static final String replicated_image = "src/test/resources/test.png";
 
     @Container
     private static final ComposeContainer composeContainer =
