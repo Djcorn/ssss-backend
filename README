@@ -1,7 +1,12 @@
 <h1> TO BUILD </h1>
-from S4-Backend/
+from ssss-backend/
 
 > ./gradlew build
+
+<h1> TO CLEAN/BUILD/DEBUG </h1>
+from ssss-backend/
+
+> ./gradlew clean build -info
 
 <h1> TO DEPLOY </h1>
 

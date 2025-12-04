@@ -47,12 +47,15 @@ public class FunctionalTest {
 
     private static final String APP_NAME = "app";
     private static final String DB_NAME = "db";
-    private static final String upload_enpoint = "/up";
     private static final int APP_PORT = 8080;
     private static final int DB_PORT = 5432;
 
-    private static final String test_image = "src/test/resources/ai.png";
-    private static final String replicated_image = "src/test/resources/test.png";
+    private static final String UPLOAD_ENDPOINT = "/upload";
+    private static final String IMAGES_ENDPOINT = "/getimages";
+    private static final String DATA_ENDPOINT = "/getimagesdata";
+
+    private static final String TEST_IMAGE = "src/test/resources/ai.png";
+    private static final String REPLICATED_IMAGE = "src/test/resources/test.png";
 
     @Container
     private static final ComposeContainer composeContainer =
@@ -94,11 +97,11 @@ public class FunctionalTest {
 
     @Test
     @Order(3)
-    @DisplayName("Should use the \\getimages REST api to query the database. ")
+    @DisplayName("Should use the /getimages REST api to query the database. ")
     void testGetImages() throws IOException{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + "/getimages"; 
+        String url = "http://" + host + ":" + port + "/"+IMAGES_ENDPOINT; 
 
         uploadData();
 
@@ -126,7 +129,7 @@ public class FunctionalTest {
         byte[] buffer = new byte[1024];
         while ((entry = zipStream.getNextEntry()) != null) {
             fileNames.add(entry.getName());
-            FileOutputStream fos = new FileOutputStream(replicated_image);
+            FileOutputStream fos = new FileOutputStream(REPLICATED_IMAGE);
             
             int len;
             while((len = zipStream.read(buffer)) > 0){
@@ -135,10 +138,10 @@ public class FunctionalTest {
             fos.close();
         }
 
-        File rep = new File(replicated_image);
+        File rep = new File(REPLICATED_IMAGE);
         assertTrue(rep.exists(), "Image file unsuccessfully downloaded.");
         //TODO: re-enable
-        assertTrue(FileUtils.contentEquals(new File(test_image), 
+        assertTrue(FileUtils.contentEquals(new File(TEST_IMAGE), 
             rep),
             "uploaded and downloaded image files do not match");
 
@@ -149,11 +152,11 @@ public class FunctionalTest {
 
     @Test
     @Order(4)
-    @DisplayName("Should use the \\getimagesdata REST api to query the database. ")
+    @DisplayName("Should use the /getimagesdata REST api to query the database. ")
     void testGetImagesData() throws IOException{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + "/getimagesdata"; 
+        String url = "http://" + host + ":" + port + "/"+DATA_ENDPOINT; 
 
         //uploadData();
 
@@ -182,17 +185,14 @@ public class FunctionalTest {
     private ResponseEntity<String> uploadData(){
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + upload_enpoint; 
+        String url = "http://" + host + ":" + port + UPLOAD_ENDPOINT; 
         System.out.println(url);
 
         // Create the JSON part
         String jsonString = createPhotoJsonData();
-        //HttpHeaders jsonHeaders = new HttpHeaders();
-        //jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        //HttpEntity<String> jsonPart = new HttpEntity<>(jsonString, jsonHeaders);
 
         // Create the file part
-        File file = new File(test_image); 
+        File file = new File(TEST_IMAGE); 
         assertTrue(file.exists(), file.toString() + " does not exist");
         FileSystemResource fileResource = new FileSystemResource(file);
 
