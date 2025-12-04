@@ -1,5 +1,5 @@
 package s4.backend;
-
+/*
 //https://docs.spring.io/spring-security/reference/servlet/architecture.html
 //https://docs.spring.io/spring-security/reference/servlet/oauth2/login/core.html
 import org.springframework.context.annotation.Bean;
@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
+ disabled for testing
 @Configuration
 public class SecurityConfig {
     @Bean
@@ -20,4 +21,4 @@ public class SecurityConfig {
         return http.build();
     }
     
-}
+} */

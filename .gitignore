@@ -1,2 +1,5 @@
 build/
 .gradle/
+app/bin
+
+app/src/test/resources/test.png

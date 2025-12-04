@@ -13,19 +13,14 @@ import lombok.Data;
 
 @Data //auto adds getters/setters
 @Entity
-@Table(name = "photo_image")
-public class PhotoImage {
+@Table(name = "app_user")
+public class AppUser {
 
     @Id
     @GeneratedValue(strategy=GenerationType.SEQUENCE)
     private long id;
 
-    // need to link properly
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "photo_data_id", referencedColumnName = "id")
-    private long photo_data_id;
-
-    @Column(name = "photo_data", nullable=false) 
-    private byte[] photo_data;
+    @Column(name = "user_name", nullable=false) 
+    private String user_name;
 
 }

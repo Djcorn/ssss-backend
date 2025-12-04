@@ -3,32 +3,46 @@
  */
 package s4.backend;
 
+
+import org.apache.commons.io.IOUtils;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.ResponseEntity;
+import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.SpringApplication;
+//import org.springframework.security.core.annotation.AuthenticationPrincipal;
+//import org.springframework.security.oauth2.jwt.Jwt;
 
+import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import s4.backend.data.PhotoData;
-import s4.backend.data.PhotoImage;
 import s4.backend.repositories.PhotoDataRepository;
-import s4.backend.repositories.PhotoImageRepository;
 
 
 @RestController
@@ -37,57 +51,121 @@ public class App {
     @Autowired 
     private PhotoDataRepository photoDataRepo; 
 
-    @Autowired 
-    private PhotoImageRepository photoImageRepo; 
+    private Path upload_directory = Paths.get(System.getProperty("user.dir")+"/uploads");
 
+    // TODO: delete
    	@RequestMapping("/")
     public String getGreeting() {
-        return "Hello Full World!";
+        System.out.print("Hello World!");
+        return "Hello World!";
     }
 
-    @PostMapping("/add")
-    public String add(@RequestBody PhotoData data){
-
-        System.out.println(data);
+    // TODO: add filter parameters
+    @GetMapping(value="/getimagesdata")
+    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData() throws IOException {
 
         // ** perform verifications here **
-
-        //saved_entity contains inserted data and its new ID so use that for other insertions
-        PhotoData saved_entity = photoDataRepo.save(data);
-        System.out.println(saved_entity);
-        return "full image added";
+        return ResponseEntity
+          .ok()
+          .body(photoDataRepo.findAll()); 
     }
 
-    @RequestMapping("/query")
-    public @ResponseBody Iterable<PhotoData> query() {
+    // TODO: add filter parameters
+    @GetMapping(value="/getimages", produces="application/zip")
+    public @ResponseBody ResponseEntity<byte[]> getImages() throws IOException {
         
         // ** perform verifications here **
 
-       Iterable<PhotoData> datas = photoDataRepo.findAll();
-       Iterable<PhotoImage> images = photoImageRepo.findAll();
+        // this avoids an error on a query with no data
+        if (Files.notExists(upload_directory)){
+            Files.createDirectories(upload_directory);
+        }
 
-       return photoDataRepo.findAll();
+        List<Path> result;
+        try (Stream<Path> paths = Files.walk(upload_directory)) {
+            result = paths
+                .filter(Files::isRegularFile)
+                    .collect(Collectors.toList());
+        } 
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(byteArrayOutputStream);
+        ZipOutputStream zos = new ZipOutputStream(bufferedOutputStream);
+        
+        for (Path path : result){
+            File file = new File(path.toString());
+            zos.putNextEntry(new ZipEntry(file.getName()));
+            FileInputStream fileInputStream = new FileInputStream(file);
+
+            IOUtils.copy(fileInputStream, zos);
+
+            fileInputStream.close();
+            zos.closeEntry();
+        }
+
+        zos.finish();
+        zos.flush();
+        IOUtils.closeQuietly(zos);
+        IOUtils.closeQuietly(bufferedOutputStream);
+        IOUtils.closeQuietly(byteArrayOutputStream);
+        
+        return ResponseEntity
+          .ok()
+          .header("Content-Disposition", "attachment; filename=\"image_files.zip\"")
+          .body(byteArrayOutputStream.toByteArray());
     }
 
-    @PostMapping("/upload")
-    public String uploadData(@RequestPart("json") MultipartFile json, @RequestPart("text") String text, @RequestPart("image") MultipartFile image, 
-    @AuthenticationPrincipal Jwt jwt) throws Exception {
+    // this is just /upload without the authentication
+    @PostMapping("/up")
+    public String uploadData(@RequestPart("json") String json, 
+                             @RequestPart("image") MultipartFile image) throws Exception {
 
-            // Convert MultipartFile -> String
+        // Convert MultipartFile -> String
+        String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
+
+        // TODO: currently returns a debug string. need to change, probably to success/fail
+        return uploadImageAndData(jsonString, image);                        
+    }
+/*
+    @PostMapping("/upload")
+    public String uploadData(@RequestPart("json") MultipartFile json, 
+                             @RequestPart("image") MultipartFile image, 
+                             @AuthenticationPrincipal Jwt jwt) throws Exception {
+
+        // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
         Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
         Files.createDirectories(savePath.getParent());
         Files.write(savePath, image.getBytes());
         System.out.println(jsonString);
-        System.out.println(text);
+
         // Gets all claimns from JWT
         Map<String,Object> claims = jwt.getClaims();
+
         //Creates new map for converting objects to string 
         Map<String, String> claimsStrings = new HashMap<>();
+
         //Creates converts each map entry to string and puts it in the new map
         for (Map.Entry<String, Object> entry : claims.entrySet()) {
             claimsStrings.put(entry.getKey(), entry.getValue().toString());
         }
+
+        if(checkJwtValidity(claimsStrings)) { 
+            return "Data uploaded successfully by " + claimsStrings.get("email");
+        }
+        else{
+             return "Data NOT uploaded successfully by " + claimsStrings.get("email");
+        }
+    }
+        */
+ 
+    public static void main(String[] args) {
+        SpringApplication.run(App.class, args);
+    }
+
+
+    private boolean checkJwtValidity(Map<String, String> claimsStrings){
+
         //Hard coded public key
         String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
         Instant time = Instant.parse(claimsStrings.get("exp"));
@@ -95,15 +173,45 @@ public class App {
         if( claimsStrings.get("aud").equals(realAud) && 
             claimsStrings.get("iss").equals("https://accounts.google.com") &&
             claimsStrings.get("email_verified").equals("true") &&
-            Instant.now().compareTo(time) < 0)
-            { 
-            return "Data uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+            Instant.now().compareTo(time) < 0) {
+
+            return true;
         }
         else{
-             return "Data NOT uploaded successfully by " + claimsStrings.get("email") +" data: " + text;
+            return false;
         }
     }
-    public static void main(String[] args) {
-        SpringApplication.run(App.class, args);
+
+        private String uploadImageAndData(String jsonString, MultipartFile image) throws IOException
+    {
+        StringBuilder debug = new StringBuilder();
+        JSONObject jsonObj = new JSONObject(jsonString.toString());
+
+        PhotoData data = new PhotoData(jsonObj);
+
+        //saved_entity contains inserted data and its new ID so use that for other insertions
+        PhotoData saved_entity = photoDataRepo.save(data);
+        String image_name = upload_directory + "//" + Long.toString(saved_entity.getId()) + ".png";
+
+        if (Files.notExists(upload_directory)){
+            Files.createDirectories(upload_directory);
+        }
+
+        Files.write(Paths.get(image_name), image.getBytes());
+
+        List<Path> result;
+        try (Stream<Path> paths = Files.walk(upload_directory)) {
+            result = paths
+                .filter(Files::isRegularFile)
+                    .collect(Collectors.toList());
+        } 
+
+        // TODO: delete and swap to success/fail when finished with authentication
+        debug.append(saved_entity.toString() + " | ");
+        debug.append(result.toString() + " | ");
+        debug.append(image.getBytes().length + " | ");
+        debug.append(Paths.get(image_name).toString() + " | ");
+
+        return debug.toString();
     }
 }
