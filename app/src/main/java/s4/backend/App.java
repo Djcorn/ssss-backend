@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -32,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +58,7 @@ public class App {
         return "Hello World!";
     }
 
-    // TODO: add filter parameters
+    // TODO: add filter parameters: https://www.speakeasy.com/api-design/filtering-responses
     @GetMapping(value="/getimagesdata")
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
@@ -78,14 +76,9 @@ public class App {
     @GetMapping(value="/getimages", produces="application/zip")
     public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
-                
+
         if(!checkJwtValidity(jwt)){
             return ResponseEntity.badRequest().body(null);
-        }
-
-        // this avoids an error on a query with no data
-        if (Files.notExists(upload_directory)){
-            Files.createDirectories(upload_directory);
         }
 
         List<Path> result;
@@ -196,10 +189,6 @@ public class App {
         //saved_entity contains inserted data and its new ID so use that for other insertions
         PhotoData saved_entity = photoDataRepo.save(data);
         String image_name = upload_directory + "//" + Long.toString(saved_entity.getId()) + ".png";
-
-        if (Files.notExists(upload_directory)){
-            Files.createDirectories(upload_directory);
-        }
 
         Files.write(Paths.get(image_name), image.getBytes());
 
