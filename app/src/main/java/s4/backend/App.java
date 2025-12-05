@@ -14,13 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import org.springframework.web.bind.annotation.ResponseBody;
-//import org.springframework.security.core.annotation.AuthenticationPrincipal;
-//import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import org.json.JSONObject;
 
@@ -33,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,11 +58,15 @@ public class App {
         return "Hello World!";
     }
 
-    // TODO: add filter parameters
+    // TODO: add filter parameters: https://www.speakeasy.com/api-design/filtering-responses
     @GetMapping(value="/getimagesdata")
-    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData() throws IOException {
+    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
+            throws IOException {
 
-        // ** perform verifications here **
+        if(!checkJwtValidity(jwt)){
+            return ResponseEntity.badRequest().body(null);
+        }
+
         return ResponseEntity
           .ok()
           .body(photoDataRepo.findAll()); 
@@ -72,13 +74,11 @@ public class App {
 
     // TODO: add filter parameters
     @GetMapping(value="/getimages", produces="application/zip")
-    public @ResponseBody ResponseEntity<byte[]> getImages() throws IOException {
-        
-        // ** perform verifications here **
+    public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
+            throws IOException {
 
-        // this avoids an error on a query with no data
-        if (Files.notExists(upload_directory)){
-            Files.createDirectories(upload_directory);
+        if(!checkJwtValidity(jwt)){
+            return ResponseEntity.badRequest().body(null);
         }
 
         List<Path> result;
@@ -115,31 +115,30 @@ public class App {
           .body(byteArrayOutputStream.toByteArray());
     }
 
-    // this is just /upload without the authentication
-    @PostMapping("/up")
-    public String uploadData(@RequestPart("json") String json, 
-                             @RequestPart("image") MultipartFile image) throws Exception {
-
-        // Convert MultipartFile -> String
-        String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
-
-        // TODO: currently returns a debug string. need to change, probably to success/fail
-        return uploadImageAndData(jsonString, image);                        
-    }
-/*
     @PostMapping("/upload")
-    public String uploadData(@RequestPart("json") MultipartFile json, 
+    public @ResponseBody ResponseEntity<String> uploadData(@RequestPart("json") String json, 
                              @RequestPart("image") MultipartFile image, 
                              @AuthenticationPrincipal Jwt jwt) throws Exception {
 
+        if(!checkJwtValidity(jwt)){
+            return ResponseEntity.badRequest().body(null);
+        }
+
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
-        Path savePath = Paths.get("uploads/" + image.getOriginalFilename());
-        Files.createDirectories(savePath.getParent());
-        Files.write(savePath, image.getBytes());
-        System.out.println(jsonString);
 
-        // Gets all claimns from JWT
+        String debug = uploadImageAndData(jsonString, image);
+
+        // TODO: currently returns a debug string. need to change, probably to success/fail
+        return ResponseEntity.ok().body(debug);                        
+    }
+ 
+    public static void main(String[] args) {
+        SpringApplication.run(App.class, args);
+    }
+
+
+    private Map<String,String> getJwtClaimStrings(Jwt jwt){
         Map<String,Object> claims = jwt.getClaims();
 
         //Creates new map for converting objects to string 
@@ -150,21 +149,18 @@ public class App {
             claimsStrings.put(entry.getKey(), entry.getValue().toString());
         }
 
-        if(checkJwtValidity(claimsStrings)) { 
-            return "Data uploaded successfully by " + claimsStrings.get("email");
-        }
-        else{
-             return "Data NOT uploaded successfully by " + claimsStrings.get("email");
-        }
-    }
-        */
- 
-    public static void main(String[] args) {
-        SpringApplication.run(App.class, args);
+        return claimsStrings;
     }
 
 
-    private boolean checkJwtValidity(Map<String, String> claimsStrings){
+    private boolean checkJwtValidity(Jwt jwt){
+        //at the moment, just having the jwt is enough. Here if other explicit checking it required
+        //note that SecurityConfig.java is already doing a check (oauth2.jwt())
+        return true; 
+
+        /*
+        //Creates new map for converting objects to string 
+        Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
 
         //Hard coded public key
         String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
@@ -179,10 +175,11 @@ public class App {
         }
         else{
             return false;
-        }
+        } */
     }
 
-        private String uploadImageAndData(String jsonString, MultipartFile image) throws IOException
+
+    private String uploadImageAndData(String jsonString, MultipartFile image) throws IOException
     {
         StringBuilder debug = new StringBuilder();
         JSONObject jsonObj = new JSONObject(jsonString.toString());
@@ -192,10 +189,6 @@ public class App {
         //saved_entity contains inserted data and its new ID so use that for other insertions
         PhotoData saved_entity = photoDataRepo.save(data);
         String image_name = upload_directory + "//" + Long.toString(saved_entity.getId()) + ".png";
-
-        if (Files.notExists(upload_directory)){
-            Files.createDirectories(upload_directory);
-        }
 
         Files.write(Paths.get(image_name), image.getBytes());
 

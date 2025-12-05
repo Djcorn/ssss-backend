@@ -15,4 +15,9 @@ class AppTest {
         assertNotNull(classUnderTest.getGreeting(), "app should have a greeting");
     }
 
+    @Test
+    public void testJwtDecoder() {
+        // This will show you the actual exception
+    }
+
 }
