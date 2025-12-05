@@ -15,6 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
+/*
+// this needs to be assigned under the TEST profile
 @Configuration
 public class SecurityConfig {
     @Bean
@@ -39,4 +41,6 @@ public class SecurityConfig {
         return http.build();
     } 
 }
+    */
+    
 
