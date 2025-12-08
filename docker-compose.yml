@@ -20,9 +20,9 @@ services:
       - SPRING_DATASOURCE_PASSWORD=compose-postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
-      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=100MB        
-    secrets:
-      - testkey 
+      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=100MB     
+    volumes:
+      - ./secrets/testkey.txt:/run/secrets/testkey
   
   db:
     image: 'postgres:13.1-alpine'
@@ -38,7 +38,3 @@ services:
     environment:
       - POSTGRES_USER=compose-postgres # these need to be replaced with a secret
       - POSTGRES_PASSWORD=compose-postgres
-
-secrets:
-  testkey: 
-    file: secrets/testkey.txt

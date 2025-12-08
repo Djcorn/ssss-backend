@@ -35,6 +35,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -49,6 +52,8 @@ public class FunctionalTest {
     private static final String DB_NAME = "db";
     private static final int APP_PORT = 8080;
     private static final int DB_PORT = 5432;
+
+    private static final String SECRETS_DIR = "../secrets/";
 
     private static final String UPLOAD_ENDPOINT = "/upload";
     private static final String IMAGES_ENDPOINT = "/getimages";
@@ -87,7 +92,7 @@ public class FunctionalTest {
     @Test
     @Order(2)
     @DisplayName("Should use the \\up REST api to add to the database")
-    void testPostMultipartFormData() {
+    void testPostMultipartFormData() throws Exception{
         composeContainer.withLogConsumer(APP_NAME, new Slf4jLogConsumer(LoggerFactory.getLogger("UnitTestContainer")));   
 
         ResponseEntity<String> response = uploadData();
@@ -98,7 +103,7 @@ public class FunctionalTest {
     @Test
     @Order(3)
     @DisplayName("Should use the /getimages REST api to query the database. ")
-    void testGetImages() throws IOException{
+    void testGetImages() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + "/"+IMAGES_ENDPOINT; 
@@ -114,7 +119,6 @@ public class FunctionalTest {
         // Send the request
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<byte[]> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, byte[].class);
-        //restTemplate.exchange(url,  HttpMethod.GET, requestEntity, byte[].class);
 
         assertEquals(response.getStatusCode().value(),200);
         
@@ -153,7 +157,7 @@ public class FunctionalTest {
     @Test
     @Order(4)
     @DisplayName("Should use the /getimagesdata REST api to query the database. ")
-    void testGetImagesData() throws IOException{
+    void testGetImagesData() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + "/"+DATA_ENDPOINT; 
@@ -182,7 +186,7 @@ public class FunctionalTest {
     }
 
     // uploads dummy data
-    private ResponseEntity<String> uploadData(){
+    private ResponseEntity<String> uploadData() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + UPLOAD_ENDPOINT; 
@@ -216,10 +220,11 @@ public class FunctionalTest {
 
     }
 
-    private String generateJwtToken() {
+    private String generateJwtToken() throws IOException{
         // Use a secure key - in production, load this from configuration
         //String secretKey = "yoursecretkeythatisatleast256bitslongforhs256";
-        byte[] keyBytes = Decoders.BASE64.decode("c2VjdXJlc2VjdXJlc2VjdXJlc2VjcmV0c2VjcmV0a2V5Cg==");
+        String secret = Files.readString(Path.of(SECRETS_DIR+"/testkey.txt")).trim();
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
 
 
         return Jwts.builder()
@@ -231,8 +236,8 @@ public class FunctionalTest {
             .compact();
     }
 
-
-    private String createPhotoJsonData(){
+    private String createPhotoJsonData() {
+        
         String jsonString = "{\r\n" + //
                         "    \"device_id\": 0,\r\n" + //
                         "    \"timestamp\": 10,\r\n" + //
