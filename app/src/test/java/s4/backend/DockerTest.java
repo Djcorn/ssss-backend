@@ -27,7 +27,7 @@ class DockerTest {
     @Test
     @DisplayName("Should run Postgres Docker image successfully")
     public void testPostgresContainer() throws InterruptedException {
-        String container = "postgres:13.1-alpine";
+        String container = "bitnami/postgresql:latest";
 
         // this test fails on Windows because Docker is working a different way
         if(System.getProperty("os.name").startsWith("Linux"))

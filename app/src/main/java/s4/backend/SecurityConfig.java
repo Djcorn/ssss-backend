@@ -26,7 +26,7 @@ import io.jsonwebtoken.security.Keys;
 @Configuration
 public class SecurityConfig {
 
-    private static final String TEST_KEY = "/run/secrets/testkey";
+    private static final String TEST_KEY = "./testkey.txt";
 
     @Bean
     public JwtDecoder jwtDecoder() throws IOException{

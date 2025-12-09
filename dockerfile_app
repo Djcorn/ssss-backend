@@ -1,11 +1,30 @@
-FROM eclipse-temurin:21
-RUN apt-get update && apt-get install -y netcat-openbsd
+FROM bitnami/java:latest
+#eclipse-temurin:21
+#RUN apt-get update && apt-get install -y netcat-openbsd
 
 # create and swap to an unpriviledged user before launching into container for security reasons
 RUN groupadd -r normal_user && useradd -r -g normal_user normal_user
 RUN mkdir uploads/
 RUN chown normal_user uploads/
-USER normal_user
 
-COPY app/build/libs/app.jar s4-backend-1.0.0.jar
-ENTRYPOINT ["java","-jar","/s4-backend-1.0.0.jar"]
+
+
+RUN chown normal_user uploads/
+
+
+
+COPY ./secrets/testkey.txt /app/
+COPY ./secrets/db_password.txt /app/
+
+RUN chown normal_user /app/testkey.txt
+#RUN chown normal_user /app/db_password.txt
+
+USER normal_user
+#RUN pwd
+#RUN ls
+
+#COPY app/build/libs/app.jar s4-backend-1.0.0.jar
+ENTRYPOINT ["java","-jar","s4-backend-1.0.0.jar"]
+#CMD export SPRING_DATASOURCE_PASSWORD="$(cat /app/db_password.txt)";
+
+#RUN echo $SPRING_DATASOURCE_PASSWORD

@@ -1,0 +1,5 @@
+FROM bitnami/postgresql:latest
+#postgres:13.1-alpine
+
+#ENTRYPOINT [ "ls" ]
+#CMD export POSTGRESQL_PASSWORD="$(cat /run/secrets/db_password)"; echo $POSTGRES_PASSWORD

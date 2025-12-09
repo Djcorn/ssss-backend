@@ -54,6 +54,7 @@ public class FunctionalTest {
     private static final int DB_PORT = 5432;
 
     private static final String SECRETS_DIR = "../secrets/";
+    private static final String TEST_KEY = "testkey.txt";
 
     private static final String UPLOAD_ENDPOINT = "/upload";
     private static final String IMAGES_ENDPOINT = "/getimages";
@@ -223,7 +224,7 @@ public class FunctionalTest {
     private String generateJwtToken() throws IOException{
         // Use a secure key - in production, load this from configuration
         //String secretKey = "yoursecretkeythatisatleast256bitslongforhs256";
-        String secret = Files.readString(Path.of(SECRETS_DIR+"/testkey.txt")).trim();
+        String secret = Files.readString(Path.of(SECRETS_DIR+TEST_KEY)).trim();
         byte[] keyBytes = Decoders.BASE64.decode(secret);
 
 
