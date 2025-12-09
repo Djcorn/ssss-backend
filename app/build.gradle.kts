@@ -74,4 +74,5 @@ tasks.jar {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    systemProperty("spring.profiles.active", project.findProperty("profile") ?: "default")
 }

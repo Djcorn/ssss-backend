@@ -1,3 +1,4 @@
+
 package s4.backend;
 
 import io.jsonwebtoken.Jwts;
@@ -8,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.apache.commons.io.FileUtils;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
-
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -29,6 +30,7 @@ import s4.backend.data.PhotoData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -42,7 +44,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 
-@Testcontainers
 public class FunctionalTest {
 
     private static final String APP_NAME = "app";
@@ -56,6 +57,14 @@ public class FunctionalTest {
 
     private static final String TEST_IMAGE = "src/test/resources/ai.png";
     private static final String REPLICATED_IMAGE = "src/test/resources/test.png";
+    
+    @BeforeAll
+    static void checkProfile() {
+        assumeTrue(
+            "test".equals(System.getProperty("spring.profiles.active")),
+            "Skipping entire class because profile is not test"
+        );
+    }
 
     @Container
     private static final ComposeContainer composeContainer =
@@ -68,6 +77,9 @@ public class FunctionalTest {
     @AfterAll
     static void PostTest()
     {
+        if (!"test".equals(System.getProperty("spring.profiles.active"))){
+            return;
+        }
         String logs = composeContainer.getContainerByServiceName(APP_NAME)
             .get()
             .getLogs();
@@ -256,4 +268,4 @@ public class FunctionalTest {
 
         return jsonString;
     }
-}
+} 

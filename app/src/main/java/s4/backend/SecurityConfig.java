@@ -6,6 +6,7 @@ import javax.crypto.SecretKey;
 //https://docs.spring.io/spring-security/reference/servlet/oauth2/login/core.html
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -15,9 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
-/*
 // this needs to be assigned under the TEST profile
 @Configuration
+@Profile("test")
 public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
@@ -41,6 +42,5 @@ public class SecurityConfig {
         return http.build();
     } 
 }
-    */
     
 
