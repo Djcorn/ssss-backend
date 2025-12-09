@@ -3,6 +3,12 @@ from ssss-backend/
 
 `./gradlew build`
 
+<h1> TO BUILD W/TESTS</h1>
+from ssss-backend/
+
+`./gradlew build -Pprofile=test`
+`./gradlew build -Pprofile=production`
+
 <h1> TO CLEAN/BUILD/DEBUG </h1>
 from ssss-backend/
 
@@ -12,6 +18,16 @@ from ssss-backend/
 <h1> TO DEPLOY </h1>
 
 `docker compose up`
+
+<h1> TO SET PROFILE LINUX</h1>
+
+`profile=test`
+`profile=production`
+
+<h1> TO SET PROFILE WINDOWS</h1>
+
+`$env:profile="test"`
+`$env:profile="production"`
 
 <h1> TO SHUTDOWN </h1>
 
