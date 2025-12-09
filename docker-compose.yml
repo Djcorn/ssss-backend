@@ -23,7 +23,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres 
       - SPRING_DATASOURCE_USERNAME=myuser # these need to be replaced with a secret
-      - SPRING_DATASOURCE_PASSWORD=mypasswordsuchaveryveryverylongpassword
+      #- SPRING_DATASOURCE_PASSWORD_FILE=mypasswordsuchaveryveryverylongpassword
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB     
@@ -34,13 +34,10 @@ services:
       - ./secrets/db_password.txt:/app/db_password.txt
   
   db:
-    build:
-      context: .
-      dockerfile: dockerfile_db
+    image: bitnami/postgresql:latest
     networks:
       - app-tier
     tty: true
-    #image: 'bitnami/postgresql:latest'
     security_opt:
       - no-new-privileges:true
       - apparmor:unconfined
@@ -52,9 +49,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRESQL_USERNAME=myuser        # Database username
-      - POSTGRESQL_PASSWORD=mypasswordsuchaveryveryverylongpassword    # Database password
-    #volumes:
-    #  - ./secrets/db_password.txt:/run/secrets/db_password:ro
+      - POSTGRESQL_USERNAME=myuser  
+      - POSTGRESQL_PASSWORD_FILE=/data/secrets/db_password.txt
+    volumes:
+      - ./secrets/db_password.txt:/data/secrets/db_password.txt:ro
 
 
