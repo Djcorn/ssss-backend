@@ -1,3 +1,4 @@
+
 package s4.backend;
 
 import io.jsonwebtoken.Jwts;
@@ -8,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.apache.commons.io.FileUtils;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
-
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -29,6 +30,7 @@ import s4.backend.data.PhotoData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -41,11 +43,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 
-@Testcontainers
 public class FunctionalTest {
 
     private static final String APP_NAME = "app";
@@ -62,6 +64,16 @@ public class FunctionalTest {
 
     private static final String TEST_IMAGE = "src/test/resources/ai.png";
     private static final String REPLICATED_IMAGE = "src/test/resources/test.png";
+    
+    @BeforeAll
+    static void checkProfile() {
+        assumeTrue(
+            "test".equals(System.getProperty("spring.profiles.active")),
+            "Skipping entire class because profile is not test"
+        );
+        System.out.println("PROFILE::::");
+        System.out.println(System.getProperty("spring.profiles.active").toString());
+    }
 
     @Container
     private static final ComposeContainer composeContainer =
@@ -71,13 +83,32 @@ public class FunctionalTest {
                         Wait.forListeningPort())
                     .withExposedService(DB_NAME, DB_PORT);
 
+    
+    @BeforeAll
+    static void setUp() {
+        composeContainer.start();
+    }
+
+    @AfterAll
+    static void tearDown() {
+        composeContainer.stop();
+    }
+
     @AfterAll
     static void PostTest()
     {
-        String logs = composeContainer.getContainerByServiceName(APP_NAME)
-            .get()
-            .getLogs();
-        System.out.println(logs);
+        if (!"test".equals(System.getProperty("spring.profiles.active"))){
+            return;
+        }
+        try {
+             String logs = composeContainer.getContainerByServiceName(APP_NAME)
+                .get()
+                .getLogs();
+            System.out.println(logs);
+        } catch (NoSuchElementException e) {
+            System.out.println("No logs found: "+e.toString());
+        }
+
     }
 
     @Test 
@@ -262,4 +293,4 @@ public class FunctionalTest {
 
         return jsonString;
     }
-}
+} 

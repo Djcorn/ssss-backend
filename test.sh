@@ -1,0 +1,1 @@
+"export POSTGRES_PASSWORD=$$(cat secrets/db_password.txt);"

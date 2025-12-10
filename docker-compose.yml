@@ -25,7 +25,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=myuser # these need to be replaced with a secret
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
-      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB     
+      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB    
+      - SPRING_PROFILES_ACTIVE=${profile:-production} 
     volumes:
         #bitnami image wants jar in /app
       - ./app/build/libs/app.jar:/app/s4-backend-1.0.0.jar
