@@ -23,15 +23,14 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres 
       - SPRING_DATASOURCE_USERNAME=myuser # these need to be replaced with a secret
-      #- SPRING_DATASOURCE_PASSWORD_FILE=mypasswordsuchaveryveryverylongpassword
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB     
     volumes:
-      #bitnami image wants jar in /app
+        #bitnami image wants jar in /app
       - ./app/build/libs/app.jar:/app/s4-backend-1.0.0.jar
-      - ./secrets/testkey.txt:/app/testkey.txt
-      - ./secrets/db_password.txt:/app/db_password.txt
+      - ./secrets/testkey.txt:/app/testkey.txt:ro
+      - ./secrets/db_password.txt:/app/db_password.txt:ro
   
   db:
     image: bitnami/postgresql:latest
@@ -45,7 +44,6 @@ services:
     #  - ALL
     #cap_add:
      # - NET_BIND_SERVICE
-    # need to set to not be accessible from anything other than app
     ports:
       - "5432:5432"
     environment:
