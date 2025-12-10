@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.LinkedMultiValueMap;
@@ -24,8 +25,6 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import s4.backend.data.PhotoData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -64,16 +62,6 @@ public class FunctionalTest {
 
     private static final String TEST_IMAGE = "src/test/resources/ai.png";
     private static final String REPLICATED_IMAGE = "src/test/resources/test.png";
-    
-    @BeforeAll
-    static void checkProfile() {
-        assumeTrue(
-            "test".equals(System.getProperty("spring.profiles.active")),
-            "Skipping entire class because profile is not test"
-        );
-        System.out.println("PROFILE::::");
-        System.out.println(System.getProperty("spring.profiles.active").toString());
-    }
 
     @Container
     private static final ComposeContainer composeContainer =
@@ -84,17 +72,25 @@ public class FunctionalTest {
                     .withExposedService(DB_NAME, DB_PORT);
 
     
+
     @BeforeAll
+    @Order(1)
+    static void checkProfile() {
+        assumeTrue(
+            "test".equals(System.getProperty("spring.profiles.active")),
+            "Skipping entire class because profile is not test"
+        );
+    }
+
+    @BeforeAll
+    @Order(2)
     static void setUp() {
         composeContainer.start();
     }
 
-    @AfterAll
-    static void tearDown() {
-        composeContainer.stop();
-    }
 
     @AfterAll
+    @Order(1)
     static void PostTest()
     {
         if (!"test".equals(System.getProperty("spring.profiles.active"))){
@@ -108,7 +104,12 @@ public class FunctionalTest {
         } catch (NoSuchElementException e) {
             System.out.println("No logs found: "+e.toString());
         }
+    }
 
+    @AfterAll
+    @Order(2)
+    static void tearDown() {
+        composeContainer.stop();
     }
 
     @Test 

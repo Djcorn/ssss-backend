@@ -17,14 +17,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
-// this needs to be assigned under the TEST profile
+
 @Configuration
-//@Profile("test")
 public class SecurityConfig {
 
     private static final String TEST_KEY = "./testkey.txt";
 
     @Bean
+    @Profile("test")
     public JwtDecoder jwtDecoder() throws IOException{
         assert "test".equals(System.getProperty("spring.profiles.active"));
 
@@ -38,7 +38,9 @@ public class SecurityConfig {
         return NimbusJwtDecoder.withSecretKey(key).build();
     }
 
+    
     @Bean
+    @Profile("test")
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth

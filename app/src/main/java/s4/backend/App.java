@@ -157,6 +157,25 @@ public class App {
         //at the moment, just having the jwt is enough. Here if other explicit checking it required
         //note that SecurityConfig.java is already doing a check (oauth2.jwt())
         return true; 
+
+        /*
+        //Creates new map for converting objects to string 
+        Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
+
+        //Hard coded public key
+        String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
+        Instant time = Instant.parse(claimsStrings.get("exp"));
+        //Checks
+        if( claimsStrings.get("aud").equals(realAud) && 
+            claimsStrings.get("iss").equals("https://accounts.google.com") &&
+            claimsStrings.get("email_verified").equals("true") &&
+            Instant.now().compareTo(time) < 0) {
+
+            return true;
+        }
+        else{
+            return false;
+        } */
     }
 
 
