@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,9 +32,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -59,16 +63,30 @@ public class App {
     }
 
     // TODO: add filter parameters: https://www.speakeasy.com/api-design/filtering-responses
+    // parameter is a string representing a ZoneDateTime: 2007-12-03T10:15:30+01:00[Europe/Paris] (yyyy-mm-ddThh::mm::ss+zz:zz)
     @GetMapping(value="/getimagesdata")
-    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
+    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(
+        @RequestParam("startdate") Optional<String> startDateParameter,
+        @AuthenticationPrincipal Jwt jwt) 
             throws IOException {
 
         if(!checkJwtValidity(jwt)){
             return ResponseEntity.badRequest().body(null);
         }
 
+        String startDateString = startDateParameter.orElse("");
+        /*if(!startDateString.equals("")){
+            ZonedDateTime startDate = ZonedDateTime.parse(startDateString);
+
+            return ResponseEntity
+                .ok()
+                .header("Query",startDate.toString())
+                .body(photoDataRepo.findAll()); 
+        }*/
+
         return ResponseEntity
           .ok()
+          .header("Query",startDateString)
           .body(photoDataRepo.findAll()); 
     }
 

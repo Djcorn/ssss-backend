@@ -14,13 +14,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.*;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.support.HttpRequestWrapper;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -36,6 +42,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -139,7 +146,7 @@ public class FunctionalTest {
     void testGetImages() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + "/"+IMAGES_ENDPOINT; 
+        String url = "http://" + host + ":" + port +IMAGES_ENDPOINT; 
 
         uploadData();
 
@@ -156,7 +163,7 @@ public class FunctionalTest {
         assertEquals(response.getStatusCode().value(),200);
         
         System.out.println(response); 
-        System.out.println(response.getBody());      
+        //System.out.println(response.getBody());      
         
         InputStream byteStream = new ByteArrayInputStream(response.getBody());
         ZipInputStream zipStream = new ZipInputStream(byteStream);
@@ -190,11 +197,10 @@ public class FunctionalTest {
     @Test
     @Order(4)
     @DisplayName("Should use the /getimagesdata REST api to query the database. ")
-    void testGetImagesData() throws Exception{
+    void testGetImagesDataAll() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + "/"+DATA_ENDPOINT; 
-
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT;
         //uploadData();
 
         //need headers specifically for the JWT
@@ -218,12 +224,64 @@ public class FunctionalTest {
         //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
     }
 
+    @Test
+    @Order(4)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data from after the passed in Date")
+    void testGetImagesDataPartial() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT+"?startdate=2007-12-03T10:15:30+B01:00[Europe/Paris]"; 
+
+        //uploadData();
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplateBuilder()
+            .rootUri(url)
+            .interceptors(new PlusEncoderInterceptor())
+            .build();
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, responseType);
+
+        assertEquals(response.getStatusCode().value(),200);
+
+        System.out.println(response); 
+        System.out.println(response.getBody());      
+
+        //TODO: add check for expected data
+        //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
+    }
+
+    private class PlusEncoderInterceptor implements ClientHttpRequestInterceptor {
+
+        @Override
+        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+            return execution.execute(new HttpRequestWrapper(request) {
+                @Override
+                public URI getURI() {
+                    URI u = super.getURI();
+                    String strictlyEscapedQuery = StringUtils.replace(u.getRawQuery(), "+", "%2B");
+                    System.out.println("REPLACED URI:::::");
+                    System.out.println(strictlyEscapedQuery);
+                    return UriComponentsBuilder.fromUri(u)
+                            .replaceQuery(strictlyEscapedQuery)
+                            .build(true).toUri();
+                }
+            }, body);
+        }
+    }
+
     // uploads dummy data
     private ResponseEntity<String> uploadData() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + UPLOAD_ENDPOINT; 
-        System.out.println(url);
 
         // Create the JSON part
         String jsonString = createPhotoJsonData();

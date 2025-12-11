@@ -8,6 +8,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
+
 import org.json.JSONObject;
 
 import jakarta.persistence.CascadeType;
@@ -23,7 +28,16 @@ public class PhotoData {
     public PhotoData(){}
 
     public PhotoData(JSONObject jsonObject) {        
-        this.timestamp                 = jsonObject.isNull("timestamp")                 ? null : jsonObject.getDouble("timestamp");
+        this.upload_timestamp = ZonedDateTime.now();
+
+        if(jsonObject.isNull("timestamp")){
+            this.taken_timestamp = null;
+        }
+        else{
+            Instant i = Instant.ofEpochMilli(jsonObject.getLong("timestamp"));
+            this.taken_timestamp = ZonedDateTime.ofInstant(i, ZoneOffset.UTC);
+        }
+
         this.media_type                = jsonObject.isNull("media_type")                ? null : jsonObject.getString("media_type");
         this.latitude                  = jsonObject.isNull("latitude")                  ? null : jsonObject.getDouble("latitude");
         this.longitude                 = jsonObject.isNull("longitude")                 ? null : jsonObject.getDouble("longitude");
@@ -50,8 +64,11 @@ public class PhotoData {
     @JoinColumn(name = "device_id", referencedColumnName = "id")
     private Device device_id;
 
-    @Column(name = "timestamp")
-    private Double timestamp;
+    @Column(name = "upload_timestamp")
+    public ZonedDateTime upload_timestamp; //TODO: change this back to private and use reflection to force different times for testing
+
+    @Column(name = "taken_timestamp")
+    private ZonedDateTime taken_timestamp;
 
     @Column(name = "media_type") 
     private String media_type;
