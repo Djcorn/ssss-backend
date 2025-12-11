@@ -155,14 +155,18 @@ public class App {
 
 
     private boolean checkJwtValidity(Jwt jwt){
-        //at the moment, just having the jwt is enough. Here if other explicit checking it required
+        //at the moment, just having the jwt is enough. Here if other explicit checking is required
         //note that SecurityConfig.java is already doing a check (oauth2.jwt())
 
+        //TODO: delete after checking that version in SecurityConfig works
+
+        return true;
+        /*
         //Creates new map for converting objects to string 
         Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
 
         //Hard coded public key
-        String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
+        String realAud = System.getenv("GOOGLE_ACCOUNT_PUBLIC_KEY"); 
         Instant time = Instant.parse(claimsStrings.get("exp"));
         //Checks
         if( claimsStrings.get("aud").equals(realAud) && 
@@ -174,7 +178,7 @@ public class App {
         }
         else{
             return false;
-        } 
+        }  */
     }
 
 
