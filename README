@@ -6,11 +6,18 @@
 <h1> TO TEST </h1>
 `SPRING_PROFILES_ACTIVE=test ./gradlew build`
 
-<h1> TO CLEAN/BUILD/TEST/DEBUG </h1>
+<h1> TO CLEAN/BUILD/TEST/DEBUG LINUX</h1>
 from ssss-backend/
 
 `docker system prune -a --volumes`
 `SPRING_PROFILES_ACTIVE=test ./gradlew clean build -info`
+
+<h1> TO CLEAN/BUILD/TEST/DEBUG WINDOWS</h1>
+from ssss-backend/
+
+`docker system prune -a --volumes`
+`$env:SPRING_PROFILES_ACTIVE="test"`
+`./gradlew clean build -Pprofile=test`
 
 <h1> TO DEPLOY </h1>
 

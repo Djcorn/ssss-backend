@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,9 +157,7 @@ public class App {
     private boolean checkJwtValidity(Jwt jwt){
         //at the moment, just having the jwt is enough. Here if other explicit checking it required
         //note that SecurityConfig.java is already doing a check (oauth2.jwt())
-        return true; 
 
-        /*
         //Creates new map for converting objects to string 
         Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
 
@@ -175,7 +174,7 @@ public class App {
         }
         else{
             return false;
-        } */
+        } 
     }
 
 
