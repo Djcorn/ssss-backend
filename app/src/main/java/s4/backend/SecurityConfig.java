@@ -3,8 +3,11 @@ package s4.backend;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.SecretKey;
 
@@ -53,7 +56,7 @@ public class SecurityConfig {
     
     @Bean
     @Profile("test")
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain testFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/**")
@@ -87,7 +90,6 @@ public class SecurityConfig {
     
     @Profile("!test")
     public class CustomJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
-
         private final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
         @Override
@@ -121,6 +123,20 @@ public class SecurityConfig {
         else{
             return false;
         }  
+    }
+
+    private Map<String,String> getJwtClaimStrings(Jwt jwt){
+        Map<String,Object> claims = jwt.getClaims();
+
+        //Creates new map for converting objects to string 
+        Map<String, String> claimsStrings = new HashMap<>();
+
+        //Creates converts each map entry to string and puts it in the new map
+        for (Map.Entry<String, Object> entry : claims.entrySet()) {
+            claimsStrings.put(entry.getKey(), entry.getValue().toString());
+        }
+
+        return claimsStrings;
     }
 
 }

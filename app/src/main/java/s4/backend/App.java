@@ -139,19 +139,7 @@ public class App {
     }
 
 
-    private Map<String,String> getJwtClaimStrings(Jwt jwt){
-        Map<String,Object> claims = jwt.getClaims();
 
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = new HashMap<>();
-
-        //Creates converts each map entry to string and puts it in the new map
-        for (Map.Entry<String, Object> entry : claims.entrySet()) {
-            claimsStrings.put(entry.getKey(), entry.getValue().toString());
-        }
-
-        return claimsStrings;
-    }
 
 
     private boolean checkJwtValidity(Jwt jwt){
