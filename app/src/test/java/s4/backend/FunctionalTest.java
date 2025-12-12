@@ -21,6 +21,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -230,7 +232,7 @@ public class FunctionalTest {
     void testGetImagesDataPartial() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + DATA_ENDPOINT+"?startdate=2007-12-03T10:15:30+B01:00[Europe/Paris]"; 
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
 
         //uploadData();
 
@@ -240,14 +242,19 @@ public class FunctionalTest {
         headers.set("Authorization", "Bearer " + jwtToken);
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-
         // Send the request
-        RestTemplate restTemplate = new RestTemplateBuilder()
-            .rootUri(url)
-            .interceptors(new PlusEncoderInterceptor())
-            .build();
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        //URI uri = uriBuilder.uriString(url+"?startdate={value}").build("2007-12-03T10:15:30+B01:00");
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}").build(-86.6865077, 34.7074681);
+        System.out.println(uri);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
         ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
-        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, responseType);
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
 
         assertEquals(response.getStatusCode().value(),200);
 
@@ -258,24 +265,6 @@ public class FunctionalTest {
         //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
     }
 
-    private class PlusEncoderInterceptor implements ClientHttpRequestInterceptor {
-
-        @Override
-        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-            return execution.execute(new HttpRequestWrapper(request) {
-                @Override
-                public URI getURI() {
-                    URI u = super.getURI();
-                    String strictlyEscapedQuery = StringUtils.replace(u.getRawQuery(), "+", "%2B");
-                    System.out.println("REPLACED URI:::::");
-                    System.out.println(strictlyEscapedQuery);
-                    return UriComponentsBuilder.fromUri(u)
-                            .replaceQuery(strictlyEscapedQuery)
-                            .build(true).toUri();
-                }
-            }, body);
-        }
-    }
 
     // uploads dummy data
     private ResponseEntity<String> uploadData() throws Exception{

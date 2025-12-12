@@ -26,12 +26,13 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=100MB
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB    
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-default}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-production}
     volumes:
         #bitnami image wants jar in /app
       - ./app/build/libs/app.jar:/app/s4-backend-1.0.0.jar
-      - ./secrets/testkey.txt:/app/testkey.txt:ro
       - ./secrets/db_password.txt:/app/db_password.txt:ro
+      - ./secrets/google_public_key.txt:/app/google_public_key.txt:ro
+      - ./secrets/testkey.txt:/app/testkey.txt:ro
   
   db:
     image: bitnami/postgresql:latest

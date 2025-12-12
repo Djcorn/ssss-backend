@@ -66,38 +66,76 @@ public class App {
     // parameter is a string representing a ZoneDateTime: 2007-12-03T10:15:30+01:00[Europe/Paris] (yyyy-mm-ddThh::mm::ss+zz:zz)
     @GetMapping(value="/getimagesdata")
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(
+        /*** 
+         * 
+         * startDateParameter - early bound on data (any data after this is valid)
+         * lat1Parameter      - top left box point latitutde
+         * lon1Parameter      - top left box point longitude
+         * lat2Parameter      - bottom right box point latitutde
+         * lon2Parameter      - bottom right box point longitude
+         * 
+         * ***/
         @RequestParam("startdate") Optional<String> startDateParameter,
+        @RequestParam("latitude_1") Optional<Double> lat1Parameter,
+        @RequestParam("longitude_1") Optional<Double> lon1Parameter,
+        @RequestParam("latitude_2") Optional<Double> lat2Parameter,
+        @RequestParam("longitude_2") Optional<Double> lon2Parameter,
         @AuthenticationPrincipal Jwt jwt) 
             throws IOException {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
+        String startDateString = startDateParameter.orElse("");
+        Double lat1 = lat1Parameter.orElse(null);
+        Double lon1 = lon1Parameter.orElse(null);
+        Double lat2 = lat2Parameter.orElse(null);
+        Double lon2 = lon2Parameter.orElse(null);
+        List<PhotoData> data = null;
+        ZonedDateTime startDate = null;
+        String returnDate = "empty";
+
+        //this throws an error if the string is bad
+        //and it is cause '+' still isn't encoding properly!
+        try{
+            startDate = ZonedDateTime.parse(startDateString);
+            returnDate = startDate.toString();
+        }
+        catch (Exception e){
+            returnDate = e.toString();
         }
 
-        String startDateString = startDateParameter.orElse("");
-        /*if(!startDateString.equals("")){
-            ZonedDateTime startDate = ZonedDateTime.parse(startDateString);
+        if(lat1 != null && lon1 != null && lat2 != null && lon2 != null){
+            //there's a viable box, we can search
+            if(startDate != null){
+                //data = photoDataRepo.findPhotoDataByLatLonBoxAfterDate(startDate, lat1, lon1, lat2, lon2);
+            }
+            else{
+                data = photoDataRepo.findPhotoDataByLatLonBox(lat1, lon1, lat2, lon2);
+            }
+        }
+        else if (startDate != null) {
+            //data = photoDataRepo.findPhotoDataAfterDate(startDate);
+        }
+        else if(lat1 != null || lon1 != null || lat2 != null || lon2 != null){
+            //some valid points but not all necessary point. 
+            //no valid filters but they tried so return error
+            //report error here?
+        }
+        else{
+            data = photoDataRepo.findAll();
+        }
 
-            return ResponseEntity
-                .ok()
-                .header("Query",startDate.toString())
-                .body(photoDataRepo.findAll()); 
-        }*/
+        
+
 
         return ResponseEntity
           .ok()
-          .header("Query",startDateString)
-          .body(photoDataRepo.findAll()); 
+          .header("Query",returnDate)
+          .body(data); 
     }
 
     // TODO: add filter parameters
     @GetMapping(value="/getimages", produces="application/zip")
     public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
-
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         List<Path> result;
         try (Stream<Path> paths = Files.walk(upload_directory)) {
@@ -138,9 +176,6 @@ public class App {
                              @RequestPart("image") MultipartFile image, 
                              @AuthenticationPrincipal Jwt jwt) throws Exception {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
@@ -153,47 +188,6 @@ public class App {
  
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
-    }
-
-
-    private Map<String,String> getJwtClaimStrings(Jwt jwt){
-        Map<String,Object> claims = jwt.getClaims();
-
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = new HashMap<>();
-
-        //Creates converts each map entry to string and puts it in the new map
-        for (Map.Entry<String, Object> entry : claims.entrySet()) {
-            claimsStrings.put(entry.getKey(), entry.getValue().toString());
-        }
-
-        return claimsStrings;
-    }
-
-
-    private boolean checkJwtValidity(Jwt jwt){
-        //at the moment, just having the jwt is enough. Here if other explicit checking it required
-        //note that SecurityConfig.java is already doing a check (oauth2.jwt())
-        return true; 
-
-        /*
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
-
-        //Hard coded public key
-        String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
-        Instant time = Instant.parse(claimsStrings.get("exp"));
-        //Checks
-        if( claimsStrings.get("aud").equals(realAud) && 
-            claimsStrings.get("iss").equals("https://accounts.google.com") &&
-            claimsStrings.get("email_verified").equals("true") &&
-            Instant.now().compareTo(time) < 0) {
-
-            return true;
-        }
-        else{
-            return false;
-        } */
     }
 
 
