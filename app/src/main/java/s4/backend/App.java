@@ -64,10 +64,6 @@ public class App {
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
-
         return ResponseEntity
           .ok()
           .body(photoDataRepo.findAll()); 
@@ -77,10 +73,6 @@ public class App {
     @GetMapping(value="/getimages", produces="application/zip")
     public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
-
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         List<Path> result;
         try (Stream<Path> paths = Files.walk(upload_directory)) {
@@ -121,9 +113,6 @@ public class App {
                              @RequestPart("image") MultipartFile image, 
                              @AuthenticationPrincipal Jwt jwt) throws Exception {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
@@ -136,37 +125,6 @@ public class App {
  
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
-    }
-
-
-
-
-
-    private boolean checkJwtValidity(Jwt jwt){
-        //at the moment, just having the jwt is enough. Here if other explicit checking is required
-        //note that SecurityConfig.java is already doing a check (oauth2.jwt())
-
-        //TODO: delete after checking that version in SecurityConfig works
-
-        return true;
-        /*
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
-
-        //Hard coded public key
-        String realAud = System.getenv("GOOGLE_ACCOUNT_PUBLIC_KEY"); 
-        Instant time = Instant.parse(claimsStrings.get("exp"));
-        //Checks
-        if( claimsStrings.get("aud").equals(realAud) && 
-            claimsStrings.get("iss").equals("https://accounts.google.com") &&
-            claimsStrings.get("email_verified").equals("true") &&
-            Instant.now().compareTo(time) < 0) {
-
-            return true;
-        }
-        else{
-            return false;
-        }  */
     }
 
 
