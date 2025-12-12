@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +64,6 @@ public class App {
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
-
         return ResponseEntity
           .ok()
           .body(photoDataRepo.findAll()); 
@@ -76,10 +73,6 @@ public class App {
     @GetMapping(value="/getimages", produces="application/zip")
     public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
             throws IOException {
-
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         List<Path> result;
         try (Stream<Path> paths = Files.walk(upload_directory)) {
@@ -120,9 +113,6 @@ public class App {
                              @RequestPart("image") MultipartFile image, 
                              @AuthenticationPrincipal Jwt jwt) throws Exception {
 
-        if(!checkJwtValidity(jwt)){
-            return ResponseEntity.badRequest().body(null);
-        }
 
         // Convert MultipartFile -> String
         String jsonString = new String(json.getBytes(), StandardCharsets.UTF_8);
@@ -135,47 +125,6 @@ public class App {
  
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
-    }
-
-
-    private Map<String,String> getJwtClaimStrings(Jwt jwt){
-        Map<String,Object> claims = jwt.getClaims();
-
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = new HashMap<>();
-
-        //Creates converts each map entry to string and puts it in the new map
-        for (Map.Entry<String, Object> entry : claims.entrySet()) {
-            claimsStrings.put(entry.getKey(), entry.getValue().toString());
-        }
-
-        return claimsStrings;
-    }
-
-
-    private boolean checkJwtValidity(Jwt jwt){
-        //at the moment, just having the jwt is enough. Here if other explicit checking it required
-        //note that SecurityConfig.java is already doing a check (oauth2.jwt())
-        return true; 
-
-        /*
-        //Creates new map for converting objects to string 
-        Map<String, String> claimsStrings = getJwtClaimStrings(jwt);
-
-        //Hard coded public key
-        String realAud = "[754385236272-591jt5g4sahjdc8ti1fooqjiv82c6tpg.apps.googleusercontent.com]";
-        Instant time = Instant.parse(claimsStrings.get("exp"));
-        //Checks
-        if( claimsStrings.get("aud").equals(realAud) && 
-            claimsStrings.get("iss").equals("https://accounts.google.com") &&
-            claimsStrings.get("email_verified").equals("true") &&
-            Instant.now().compareTo(time) < 0) {
-
-            return true;
-        }
-        else{
-            return false;
-        } */
     }
 
 

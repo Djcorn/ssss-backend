@@ -2,4 +2,6 @@ build/
 .gradle/
 app/bin
 
+secrets/*
+
 app/src/test/resources/test.png

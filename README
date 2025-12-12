@@ -1,23 +1,25 @@
 <h1> TO BUILD </h1>
-from ssss-backend/
+<h3>from ssss-backend/</h3>
 
 `./gradlew build`
 
 <h1> TO BUILD W/TESTS</h1>
 from ssss-backend/
 
-`./gradlew build -Pprofile=test`
-`./gradlew build -Pprofile=production`
+`SPRING_PROFILES_ACTIVE=test ./gradlew build -Pprofile=test`
 
 <h1> TO CLEAN/BUILD/DEBUG </h1>
 from ssss-backend/
 
 `docker system prune -a --volumes`
-`./gradlew clean build -info`
+`SPRING_PROFILES_ACTIVE=test ./gradlew clean build -Pprofile=test -info`
 
-<h1> TO DEPLOY </h1>
+<h1> TO CLEAN/BUILD/TEST/DEBUG WINDOWS</h1>
+from ssss-backend/
 
-`docker compose up`
+`docker system prune -a --volumes`
+`$env:SPRING_PROFILES_ACTIVE="test"`
+`./gradlew clean build -Pprofile=test`
 
 <h1> TO SET PROFILE LINUX</h1>
 
@@ -29,14 +31,18 @@ from ssss-backend/
 `$env:profile="test"`
 `$env:profile="production"`
 
+<h1> TO DEPLOY </h1>
+
+`docker compose up`
+
+
 <h1> TO SHUTDOWN </h1>
 
 `docker compose down`
 
 
 <h1> TO EXTRACT DATABASE </h1>
-<h3> Note that these two commands assume certain docker image names (ssss-backend-XXX-1). These can be verified through 'docker ps -a' when the containers are running</h3>
-
+<h3> Note that these two extraction commands assume certain docker image names (ssss-backend-XXX-1). These can be verified through 'docker ps -a' when the containers are running</h3>
 
 ``docker exec -t $(docker ps -aqf "name=ssss-backend-db-1") pg_dumpall -c -U postgres | gzip > s4_sql_dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql.gz``
 
