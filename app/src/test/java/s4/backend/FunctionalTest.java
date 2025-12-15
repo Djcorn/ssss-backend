@@ -137,7 +137,7 @@ public class FunctionalTest {
     void testPostMultipartFormData() throws Exception{
         composeContainer.withLogConsumer(APP_NAME, new Slf4jLogConsumer(LoggerFactory.getLogger("UnitTestContainer")));   
 
-        ResponseEntity<String> response = uploadData();
+        ResponseEntity<String> response = uploadData(1234.1, 1512321.123);
 
         assertEquals(response.getStatusCode().value(),200);
     }
@@ -150,7 +150,7 @@ public class FunctionalTest {
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port +IMAGES_ENDPOINT; 
 
-        uploadData();
+        uploadData(1234.1, 1512321.123);
 
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
@@ -203,7 +203,7 @@ public class FunctionalTest {
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + DATA_ENDPOINT;
-        //uploadData();
+        //uploadData(1234.1, 1512321.123);
 
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
@@ -225,16 +225,37 @@ public class FunctionalTest {
         //TODO: add check for expected data
         //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
     }
-
+/* 
     @Test
     @Order(4)
-    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data from after the passed in Date")
-    void testGetImagesDataPartial() throws Exception{
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box")
+    void testGetImagesDataDateFiltered() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
 
-        //uploadData();
+        // should all be outside of latlon box
+        uploadData(-1.0, -1.0);
+        uploadData(-1.0, 50.0);
+        uploadData(-1.0, 200.0);
+        uploadData(50.0, -1.0);
+        uploadData(50.0, 200.0);
+        uploadData(200.0, -1.0);
+        uploadData(200.0, 50.0);
+        uploadData(200.0, 200.0);
+
+        // should all be inside of latlon box
+        uploadData(90.0, 100.0);
+        uploadData(100.0, 90.0);
+        uploadData(100.0, 100.0);
+        uploadData(100.0, 110.0);
+        uploadData(110.0, 110.0);
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
 
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
@@ -248,7 +269,7 @@ public class FunctionalTest {
         uriBuilder.setEncodingMode(EncodingMode.NONE); 
 
         //URI uri = uriBuilder.uriString(url+"?startdate={value}").build("2007-12-03T10:15:30+B01:00");
-        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}").build(-86.6865077, 34.7074681);
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}").build(lat1, lon1, lat2, lon2);
         System.out.println(uri);
 
         restTemplate.setUriTemplateHandler(uriBuilder);
@@ -264,16 +285,16 @@ public class FunctionalTest {
         //TODO: add check for expected data
         //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
     }
-
+*/
 
     // uploads dummy data
-    private ResponseEntity<String> uploadData() throws Exception{
+    private ResponseEntity<String> uploadData(Double lat, Double lon) throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + UPLOAD_ENDPOINT; 
 
         // Create the JSON part
-        String jsonString = createPhotoJsonData();
+        String jsonString = createPhotoJsonData(lat, lon);
 
         // Create the file part
         File file = new File(TEST_IMAGE); 
@@ -306,7 +327,6 @@ public class FunctionalTest {
         String secret = Files.readString(Path.of(SECRETS_DIR+TEST_KEY)).trim();
         byte[] keyBytes = Decoders.BASE64.decode(secret);
 
-
         return Jwts.builder()
             .subject("testuser")
             .issuedAt(new Date())
@@ -316,14 +336,14 @@ public class FunctionalTest {
             .compact();
     }
 
-    private String createPhotoJsonData() {
+    private String createPhotoJsonData(Double lat, Double lon) {
         
         String jsonString = "{\r\n" + //
                         "    \"device_id\": 0,\r\n" + //
                         "    \"timestamp\": 10,\r\n" + //
                         "    \"media_type\": \"photo\",\r\n" + //
-                        "    \"latitude\": 1234.1,\r\n" + //
-                        "    \"longitude\": 1512321.123,\r\n" + //
+                        "    \"latitude\": " + lat.toString() + ",\r\n" + //
+                        "    \"longitude\": " + lon.toString() + ",\r\n" + //
                         "    \"location_accuracy\": 0,\r\n" + //
                         "    \"altitude_above_msl\": 0,\r\n" + //
                         "    \"height_above_ellipsoid\": 0,\r\n" + //

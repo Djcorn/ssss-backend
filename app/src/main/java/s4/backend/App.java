@@ -69,10 +69,10 @@ public class App {
         /*** 
          * 
          * startDateParameter - early bound on data (any data after this is valid)
-         * lat1Parameter      - top left box point latitutde
-         * lon1Parameter      - top left box point longitude
-         * lat2Parameter      - bottom right box point latitutde
-         * lon2Parameter      - bottom right box point longitude
+         * lat1Parameter      - bottom left box point latitutde
+         * lon1Parameter      - bottom left box point longitude
+         * lat2Parameter      - top right box point latitutde
+         * lon2Parameter      - top right box point longitude
          * 
          * ***/
         @RequestParam("startdate") Optional<String> startDateParameter,
@@ -122,9 +122,6 @@ public class App {
         else{
             data = photoDataRepo.findAll();
         }
-
-        
-
 
         return ResponseEntity
           .ok()
