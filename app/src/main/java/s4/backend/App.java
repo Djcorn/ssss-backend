@@ -94,6 +94,7 @@ public class App {
 
         //this throws an error if the string is bad
         //and it is cause '+' still isn't encoding properly!
+        String status = "";
         try{
             startDate = ZonedDateTime.parse(startDateString);
             returnDate = startDate.toString();
@@ -106,26 +107,31 @@ public class App {
             //there's a viable box, we can search
             if(startDate != null){
                 //data = photoDataRepo.findPhotoDataByLatLonBoxAfterDate(startDate, lat1, lon1, lat2, lon2);
+                status = "findPhotoDataByLatLonBoxAfterDate";
             }
             else{
+                status = "findPhotoDataByLatLonBox";
                 data = photoDataRepo.findPhotoDataByLatLonBox(lat1, lon1, lat2, lon2);
             }
         }
         else if (startDate != null) {
             //data = photoDataRepo.findPhotoDataAfterDate(startDate);
+            status = "findPhotoDataAfterDate";
         }
         else if(lat1 != null || lon1 != null || lat2 != null || lon2 != null){
             //some valid points but not all necessary point. 
             //no valid filters but they tried so return error
             //report error here?
+            status = "ERROR";
         }
         else{
             data = photoDataRepo.findAll();
+            status = "findAll";
         }
 
         return ResponseEntity
           .ok()
-          .header("Query",returnDate)
+          .header("Query",status)
           .body(data); 
     }
 

@@ -225,7 +225,7 @@ public class FunctionalTest {
         //TODO: add check for expected data
         //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
     }
-/* 
+ 
     @Test
     @Order(4)
     @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box")
@@ -276,16 +276,14 @@ public class FunctionalTest {
 
         ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
         ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
-
         assertEquals(response.getStatusCode().value(),200);
 
-        System.out.println(response); 
-        System.out.println(response.getBody());      
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(viableData.size(), 5);
 
-        //TODO: add check for expected data
-        //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
-    }
-*/
+        //TODO: add check for specific data?
+        }
+
 
     // uploads dummy data
     private ResponseEntity<String> uploadData(Double lat, Double lon) throws Exception{
