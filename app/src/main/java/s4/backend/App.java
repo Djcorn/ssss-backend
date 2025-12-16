@@ -32,12 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,13 +59,11 @@ public class App {
         return "Hello World!";
     }
 
-    // TODO: add filter parameters: https://www.speakeasy.com/api-design/filtering-responses
-    // parameter is a string representing a ZoneDateTime: 2007-12-03T10:15:30+01:00[Europe/Paris] (yyyy-mm-ddThh::mm::ss+zz:zz)
     @GetMapping(value="/getimagesdata")
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(
         /*** 
          * 
-         * startDateParameter - early bound on data (any data after this is valid)
+         * startDateParameter - early bound on data (any data after this is valid), measured in milliseconds since epoch
          * lat1Parameter      - bottom left box point latitutde
          * lon1Parameter      - bottom left box point longitude
          * lat2Parameter      - top right box point latitutde
