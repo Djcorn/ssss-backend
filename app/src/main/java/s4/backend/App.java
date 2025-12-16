@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,38 +76,27 @@ public class App {
          * lon2Parameter      - top right box point longitude
          * 
          * ***/
-        @RequestParam("startdate") Optional<String> startDateParameter,
-        @RequestParam("latitude_1") Optional<Double> lat1Parameter,
-        @RequestParam("longitude_1") Optional<Double> lon1Parameter,
-        @RequestParam("latitude_2") Optional<Double> lat2Parameter,
-        @RequestParam("longitude_2") Optional<Double> lon2Parameter,
-        @AuthenticationPrincipal Jwt jwt) 
-            throws IOException {
+            @RequestParam("startTime") Optional<Long> startDateParameter,
+            @RequestParam("latitude_1") Optional<Double> lat1Parameter,
+            @RequestParam("longitude_1") Optional<Double> lon1Parameter,
+            @RequestParam("latitude_2") Optional<Double> lat2Parameter,
+            @RequestParam("longitude_2") Optional<Double> lon2Parameter,
+            @AuthenticationPrincipal Jwt jwt) 
+                throws IOException {
 
-        String startDateString = startDateParameter.orElse("");
+        Long startTimeInMilliSinceEpoch = startDateParameter.orElse(null);
         Double lat1 = lat1Parameter.orElse(null);
         Double lon1 = lon1Parameter.orElse(null);
         Double lat2 = lat2Parameter.orElse(null);
         Double lon2 = lon2Parameter.orElse(null);
-        List<PhotoData> data = null;
-        ZonedDateTime startDate = null;
-        String returnDate = "empty";
 
-        //this throws an error if the string is bad
-        //and it is cause '+' still isn't encoding properly!
+        List<PhotoData> data = new ArrayList<>();
         String status = "";
-        try{
-            startDate = ZonedDateTime.parse(startDateString);
-            returnDate = startDate.toString();
-        }
-        catch (Exception e){
-            returnDate = e.toString();
-        }
 
         if(lat1 != null && lon1 != null && lat2 != null && lon2 != null){
             //there's a viable box, we can search
-            if(startDate != null){
-                //data = photoDataRepo.findPhotoDataByLatLonBoxAfterDate(startDate, lat1, lon1, lat2, lon2);
+            if(startTimeInMilliSinceEpoch != null){
+                data = photoDataRepo.findPhotoDataByLatLonBoxAfterDate(lat1, lon1, lat2, lon2, startTimeInMilliSinceEpoch);
                 status = "findPhotoDataByLatLonBoxAfterDate";
             }
             else{
@@ -114,15 +104,15 @@ public class App {
                 data = photoDataRepo.findPhotoDataByLatLonBox(lat1, lon1, lat2, lon2);
             }
         }
-        else if (startDate != null) {
-            //data = photoDataRepo.findPhotoDataAfterDate(startDate);
+        else if (startTimeInMilliSinceEpoch != null) {
+            data = photoDataRepo.findPhotoDataAfterDate(startTimeInMilliSinceEpoch);
             status = "findPhotoDataAfterDate";
         }
         else if(lat1 != null || lon1 != null || lat2 != null || lon2 != null){
             //some valid points but not all necessary point. 
             //no valid filters but they tried so return error
             //report error here?
-            status = "ERROR";
+            status = "ERROR: NEED ALL 4 LAT & LON POINTS";
         }
         else{
             data = photoDataRepo.findAll();
@@ -131,7 +121,7 @@ public class App {
 
         return ResponseEntity
           .ok()
-          .header("Query",status)
+          .header("QueryFunction",status)
           .body(data); 
     }
 

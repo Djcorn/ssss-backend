@@ -11,8 +11,10 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -33,6 +35,7 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
+
 import s4.backend.data.PhotoData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,6 +50,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -54,7 +58,7 @@ import java.util.NoSuchElementException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class FunctionalTest {
 
     private static final String APP_NAME = "app";
@@ -71,6 +75,8 @@ public class FunctionalTest {
 
     private static final String TEST_IMAGE = "src/test/resources/ai.png";
     private static final String REPLICATED_IMAGE = "src/test/resources/test.png";
+
+    private static ZonedDateTime cutoffTime = null;
 
     @Container
     private static final ComposeContainer composeContainer =
@@ -150,8 +156,6 @@ public class FunctionalTest {
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port +IMAGES_ENDPOINT; 
 
-        uploadData(1234.1, 1512321.123);
-
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
         String jwtToken = generateJwtToken();
@@ -197,13 +201,12 @@ public class FunctionalTest {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     @DisplayName("Should use the /getimagesdata REST api to query the database. ")
     void testGetImagesDataAll() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + DATA_ENDPOINT;
-        //uploadData(1234.1, 1512321.123);
 
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
@@ -228,28 +231,19 @@ public class FunctionalTest {
  
     @Test
     @Order(4)
+    @DisplayName("Testing multiple data uploads, data will be used for next tests")
+    void testBulkUploading() throws Exception{
+        uploadBulkData();
+        System.out.print("DATA UPLOADED");
+    }
+
+    @Test
+    @Order(5)
     @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box")
-    void testGetImagesDataDateFiltered() throws Exception{
+    void testGetImagesDataLatLonFiltered() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
         String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
-
-        // should all be outside of latlon box
-        uploadData(-1.0, -1.0);
-        uploadData(-1.0, 50.0);
-        uploadData(-1.0, 200.0);
-        uploadData(50.0, -1.0);
-        uploadData(50.0, 200.0);
-        uploadData(200.0, -1.0);
-        uploadData(200.0, 50.0);
-        uploadData(200.0, 200.0);
-
-        // should all be inside of latlon box
-        uploadData(90.0, 100.0);
-        uploadData(100.0, 90.0);
-        uploadData(100.0, 100.0);
-        uploadData(100.0, 110.0);
-        uploadData(110.0, 110.0);
 
         Double lat1 = 90.0;
         Double lon1 = 90.0;
@@ -276,10 +270,89 @@ public class FunctionalTest {
 
         ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
         ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        System.out.println(response);
         assertEquals(response.getStatusCode().value(),200);
 
         List<PhotoData> viableData = response.getBody();
-        assertEquals(viableData.size(), 5);
+        assertEquals(5, viableData.size());
+
+        //TODO: add check for specific data?
+        }
+
+    @Test
+    @Order(5)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box and after the given date")
+    void testGetImagesDataLatLonDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}&startTime={value}").build(lat1, lon1, lat2, lon2, millisecondsSinceEpoch);
+        
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(3, viableData.size());
+
+        //TODO: add check for specific data?
+    } 
+
+    @Test
+    @Order(5)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is after the given date")
+    void testGetImagesDataDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?startTime={value}").build(millisecondsSinceEpoch);
+        System.out.println(uri);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(7, viableData.size());
 
         //TODO: add check for specific data?
         }
@@ -316,7 +389,37 @@ public class FunctionalTest {
         ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
         return response;
+    }
 
+    private void uploadBulkData() throws Exception{
+        // should be outside of latlon box (assuming box is at 90,90 and 110,110)
+        uploadData(-1.0, -1.0);
+        uploadData(-1.0, 50.0);
+        uploadData(-1.0, 200.0);
+        uploadData(50.0, -1.0);
+
+        // should all be inside of latlon box
+        uploadData(90.0, 100.0);
+        uploadData(100.0, 90.0);
+
+        //data is uploaded in sections so that different filters have unique correct answers for better testing
+
+        wait(1000);
+        cutoffTime = ZonedDateTime.now();
+        System.out.println(cutoffTime.toString());
+        wait(1000);
+
+
+        // should be outside of latlon box
+        uploadData(50.0, 200.0);
+        uploadData(200.0, -1.0);
+        uploadData(200.0, 50.0);
+        uploadData(200.0, 200.0);
+
+        // should all be inside of latlon box
+        uploadData(100.0, 100.0);
+        uploadData(100.0, 110.0);
+        uploadData(110.0, 110.0);
     }
 
     private String generateJwtToken() throws IOException{
@@ -358,5 +461,17 @@ public class FunctionalTest {
                         "}";
 
         return jsonString;
+    }
+
+    private static void wait(int ms)
+    {
+        try
+        {
+            Thread.sleep(ms);
+        }
+        catch(InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+        }
     }
 } 

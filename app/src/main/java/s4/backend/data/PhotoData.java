@@ -28,32 +28,25 @@ public class PhotoData {
     public PhotoData(){}
 
     public PhotoData(JSONObject jsonObject) {        
-        this.upload_timestamp = ZonedDateTime.now();
+        this.upload_timestamp_in_milli_epoch = ZonedDateTime.now().toInstant().toEpochMilli();
 
-        if(jsonObject.isNull("timestamp")){
-            this.taken_timestamp = null;
-        }
-        else{
-            Instant i = Instant.ofEpochMilli(jsonObject.getLong("timestamp"));
-            this.taken_timestamp = ZonedDateTime.ofInstant(i, ZoneOffset.UTC);
-        }
-
-        this.media_type                = jsonObject.isNull("media_type")                ? null : jsonObject.getString("media_type");
-        this.latitude                  = jsonObject.isNull("latitude")                  ? null : jsonObject.getDouble("latitude");
-        this.longitude                 = jsonObject.isNull("longitude")                 ? null : jsonObject.getDouble("longitude");
-        this.location_accuracy         = jsonObject.isNull("location_accuracy")         ? null : jsonObject.getDouble("location_accuracy");
-        this.altitude_above_msl        = jsonObject.isNull("altitude_above_msl")        ? null : jsonObject.getDouble("altitude_above_msl");
-        this.height_above_ellipsoid    = jsonObject.isNull("height_above_ellipsoid")    ? null : jsonObject.getDouble("height_above_ellipsoid");
-        this.linear_error              = jsonObject.isNull("linear_error")              ? null : jsonObject.getDouble("linear_error");
-        this.resolution                = jsonObject.isNull("resolution")                ? null : jsonObject.getString("resolution");
-        this.zoom                      = jsonObject.isNull("zoom")                      ? null : jsonObject.getDouble("zoom");
-        this.horizontal_field_of_view  = jsonObject.isNull("horizontal_field_of_view")  ? null : jsonObject.getDouble("horizontal_field_of_view");
-        this.vertical_field_of_view    = jsonObject.isNull("vertical_field_of_view")    ? null : jsonObject.getDouble("vertical_field_of_view");
-        this.azumith                   = jsonObject.isNull("azumith")                   ? null : jsonObject.getDouble("azumith");
-        this.pitch                     = jsonObject.isNull("pitch")                     ? null : jsonObject.getDouble("pitch");
-        this.roll                      = jsonObject.isNull("roll")                      ? null : jsonObject.getDouble("roll");
-        this.lens_type                 = jsonObject.isNull("lens_type")                 ? null : jsonObject.getString("lens_type");
-        this.location_provider         = jsonObject.isNull("location_provider")         ? null : jsonObject.getString("location_provider");
+        this.taken_timestamp_in_milli_epoch = jsonObject.isNull("media_type")                ? null : jsonObject.getLong("timestamp");
+        this.media_type                     = jsonObject.isNull("media_type")                ? null : jsonObject.getString("media_type");
+        this.latitude                       = jsonObject.isNull("latitude")                  ? null : jsonObject.getDouble("latitude");
+        this.longitude                      = jsonObject.isNull("longitude")                 ? null : jsonObject.getDouble("longitude");
+        this.location_accuracy              = jsonObject.isNull("location_accuracy")         ? null : jsonObject.getDouble("location_accuracy");
+        this.altitude_above_msl             = jsonObject.isNull("altitude_above_msl")        ? null : jsonObject.getDouble("altitude_above_msl");
+        this.height_above_ellipsoid         = jsonObject.isNull("height_above_ellipsoid")    ? null : jsonObject.getDouble("height_above_ellipsoid");
+        this.linear_error                   = jsonObject.isNull("linear_error")              ? null : jsonObject.getDouble("linear_error");
+        this.resolution                     = jsonObject.isNull("resolution")                ? null : jsonObject.getString("resolution");
+        this.zoom                           = jsonObject.isNull("zoom")                      ? null : jsonObject.getDouble("zoom");
+        this.horizontal_field_of_view       = jsonObject.isNull("horizontal_field_of_view")  ? null : jsonObject.getDouble("horizontal_field_of_view");
+        this.vertical_field_of_view         = jsonObject.isNull("vertical_field_of_view")    ? null : jsonObject.getDouble("vertical_field_of_view");
+        this.azumith                        = jsonObject.isNull("azumith")                   ? null : jsonObject.getDouble("azumith");
+        this.pitch                          = jsonObject.isNull("pitch")                     ? null : jsonObject.getDouble("pitch");
+        this.roll                           = jsonObject.isNull("roll")                      ? null : jsonObject.getDouble("roll");
+        this.lens_type                      = jsonObject.isNull("lens_type")                 ? null : jsonObject.getString("lens_type");
+        this.location_provider              = jsonObject.isNull("location_provider")         ? null : jsonObject.getString("location_provider");
     }
 
     @Id
@@ -64,11 +57,11 @@ public class PhotoData {
     @JoinColumn(name = "device_id", referencedColumnName = "id")
     private Device device_id;
 
-    @Column(name = "upload_timestamp")
-    public ZonedDateTime upload_timestamp; //TODO: change this back to private and use reflection to force different times for testing
+    @Column(name = "upload_timestamp_in_milli_epoch")
+    public Long upload_timestamp_in_milli_epoch; 
 
-    @Column(name = "taken_timestamp")
-    private ZonedDateTime taken_timestamp;
+    @Column(name = "taken_timestamp_in_milli_epoch")
+    private Long taken_timestamp_in_milli_epoch;
 
     @Column(name = "media_type") 
     private String media_type;
