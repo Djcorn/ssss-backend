@@ -50,7 +50,8 @@ public class App {
     @Autowired 
     private PhotoDataRepository photoDataRepo; 
 
-    private Path upload_directory = Paths.get(System.getProperty("user.dir")+"/uploads");
+    private static final Path UPLOAD_DIRECTORY = Paths.get(System.getProperty("user.dir")+"/uploads");
+    private static final String IMAGE_TYPE = ".png";
 
     // TODO: delete
    	@RequestMapping("/")
@@ -121,21 +122,26 @@ public class App {
 
     // TODO: add filter parameters
     @GetMapping(value="/getimages", produces="application/zip")
-    public @ResponseBody ResponseEntity<byte[]> getImages(@AuthenticationPrincipal Jwt jwt) 
+    public @ResponseBody ResponseEntity<byte[]> getImages(@RequestParam("startTime") Optional<Long> startDateParameter,
+            @RequestParam("latitude_1") Optional<Double> lat1Parameter,
+            @RequestParam("longitude_1") Optional<Double> lon1Parameter,
+            @RequestParam("latitude_2") Optional<Double> lat2Parameter,
+            @RequestParam("longitude_2") Optional<Double> lon2Parameter,
+            @AuthenticationPrincipal Jwt jwt) 
             throws IOException {
 
-        List<Path> result;
-        try (Stream<Path> paths = Files.walk(upload_directory)) {
-            result = paths
-                .filter(Files::isRegularFile)
-                    .collect(Collectors.toList());
-        } 
+        List<PhotoData> associatedData = getImagesData(startDateParameter, lat1Parameter, lon1Parameter, lat2Parameter, lon2Parameter, jwt).getBody();
+        List<Path> fileNames = new ArrayList<>();
+        for (PhotoData p : associatedData){
+            String fileName = UPLOAD_DIRECTORY + "//" + Long.toString(p.getId()) +IMAGE_TYPE;
+            fileNames.add(Paths.get(fileName));
+        }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(byteArrayOutputStream);
         ZipOutputStream zos = new ZipOutputStream(bufferedOutputStream);
         
-        for (Path path : result){
+        for (Path path : fileNames){
             File file = new File(path.toString());
             zos.putNextEntry(new ZipEntry(file.getName()));
             FileInputStream fileInputStream = new FileInputStream(file);
@@ -154,7 +160,7 @@ public class App {
         
         return ResponseEntity
           .ok()
-          .header("Content-Disposition", "attachment; filename=\"image_files.zip\"")
+          .header("Content-Disposition", "attachment; filename=\"image_files.zip\"; paths:"+fileNames.toString())
           .body(byteArrayOutputStream.toByteArray());
     }
 
@@ -187,12 +193,12 @@ public class App {
 
         //saved_entity contains inserted data and its new ID so use that for other insertions
         PhotoData saved_entity = photoDataRepo.save(data);
-        String image_name = upload_directory + "//" + Long.toString(saved_entity.getId()) + ".png";
+        String image_name = UPLOAD_DIRECTORY + "//" + Long.toString(saved_entity.getId()) + IMAGE_TYPE;
 
         Files.write(Paths.get(image_name), image.getBytes());
 
         List<Path> result;
-        try (Stream<Path> paths = Files.walk(upload_directory)) {
+        try (Stream<Path> paths = Files.walk(UPLOAD_DIRECTORY)) {
             result = paths
                 .filter(Files::isRegularFile)
                     .collect(Collectors.toList());

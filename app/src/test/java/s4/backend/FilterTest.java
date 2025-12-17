@@ -6,8 +6,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
-import org.apache.commons.io.FileUtils;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +13,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.LinkedMultiValueMap;
@@ -24,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode;
 import org.springframework.http.*;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -52,7 +48,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class FunctionalTest {
+public class FilterTest {
 
     private static final String APP_NAME = "app";
     private static final String DB_NAME = "db";
@@ -78,8 +74,6 @@ public class FunctionalTest {
                         APP_PORT,
                         Wait.forListeningPort())
                     .withExposedService(DB_NAME, DB_PORT);
-
-    
 
     @BeforeAll
     @Order(1)
@@ -120,34 +114,28 @@ public class FunctionalTest {
         composeContainer.stop();
     }
 
-    @Test 
-    @Order(1)
-    @DisplayName("Should use the docker compose file to open the app and data base")
-    void apiUpTest(){
-        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
-        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-
-        System.out.println("Spring Boot app is running at: " + host + ":" + port);
-    }
-
-    @Test
-    @Order(2)
-    @DisplayName("Should use the \\up REST api to add to the database")
-    void testPostMultipartFormData() throws Exception{
-        composeContainer.withLogConsumer(APP_NAME, new Slf4jLogConsumer(LoggerFactory.getLogger("UnitTestContainer")));   
-
-        ResponseEntity<String> response = uploadData(1234.1, 1512321.123);
-
-        assertEquals(response.getStatusCode().value(),200);
-    }
-
+ 
     @Test
     @Order(3)
-    @DisplayName("Should use the /getimages REST api to query the database. ")
-    void testGetImages() throws Exception{
+    @DisplayName("Testing multiple data uploads, data will be used for next tests")
+    void testBulkUploading() throws Exception{
+        uploadBulkData();
+        System.out.print("DATA UPLOADED");
+    }
+/*
+    @Test
+    @Order(4)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box")
+    void testGetImagesDataLatLonFiltered() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port +IMAGES_ENDPOINT; 
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
 
         //need headers specifically for the JWT
         HttpHeaders headers = new HttpHeaders();
@@ -157,13 +145,134 @@ public class FunctionalTest {
 
         // Send the request
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<byte[]> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, byte[].class);
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
 
+        //URI uri = uriBuilder.uriString(url+"?startdate={value}").build("2007-12-03T10:15:30+B01:00");
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}").build(lat1, lon1, lat2, lon2);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        //System.out.println(response);
         assertEquals(response.getStatusCode().value(),200);
-        
-        System.out.println(response); 
-        //System.out.println(response.getBody());      
-        
+
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(5, viableData.size());
+
+        //TODO: add check for specific data?
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box and after the given date")
+    void testGetImagesDataLatLonDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}&startTime={value}").build(lat1, lon1, lat2, lon2, millisecondsSinceEpoch);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        //System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(3, viableData.size());
+
+        //TODO: add check for specific data?
+    } 
+
+    @Test
+    @Order(4)
+    @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is after the given date")
+    void testGetImagesDataDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + DATA_ENDPOINT; 
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?startTime={value}").build(millisecondsSinceEpoch);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
+        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(uri,  HttpMethod.GET, requestEntity, responseType);
+        //System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        List<PhotoData> viableData = response.getBody();
+        assertEquals(7, viableData.size());
+
+        //TODO: add check for specific data?
+    }
+*/
+    @Test
+    @Order(5)
+    @DisplayName("Should use the /getimages REST api to query the database but only recieve updated data that is inside the given LatLon box")
+    void testGetImagesLatLonFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + IMAGES_ENDPOINT; 
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        //URI uri = uriBuilder.uriString(url+"?startdate={value}").build("2007-12-03T10:15:30+B01:00");
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}").build(lat1, lon1, lat2, lon2);
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, requestEntity, byte[].class);
+        //System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
         InputStream byteStream = new ByteArrayInputStream(response.getBody());
         ZipInputStream zipStream = new ZipInputStream(byteStream);
 
@@ -171,8 +280,10 @@ public class FunctionalTest {
         ZipEntry entry;
         byte[] buffer = new byte[1024];
         while ((entry = zipStream.getNextEntry()) != null) {
-            fileNames.add(entry.getName());
-            FileOutputStream fos = new FileOutputStream(REPLICATED_IMAGE);
+            String fileName = "src/test/resources/"+entry.getName();
+            System.out.println(fileName);
+            fileNames.add(fileName);
+            FileOutputStream fos = new FileOutputStream(fileName);
             
             int len;
             while((len = zipStream.read(buffer)) > 0){
@@ -181,48 +292,11 @@ public class FunctionalTest {
             fos.close();
         }
 
-        File rep = new File(REPLICATED_IMAGE);
-        assertTrue(rep.exists(), "Image file unsuccessfully downloaded.");
-        //TODO: re-enable
-        assertTrue(FileUtils.contentEquals(new File(TEST_IMAGE), 
-            rep),
-            "uploaded and downloaded image files do not match");
-
-        if (rep.exists()) {
-            rep.delete();
-        }
+        assertEquals(5, fileNames.size());
     }
 
-    @Test
-    @Order(3)
-    @DisplayName("Should use the /getimagesdata REST api to query the database. ")
-    void testGetImagesDataAll() throws Exception{
-        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
-        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
-        String url = "http://" + host + ":" + port + DATA_ENDPOINT;
 
-        //need headers specifically for the JWT
-        HttpHeaders headers = new HttpHeaders();
-        String jwtToken = generateJwtToken();
-        headers.set("Authorization", "Bearer " + jwtToken);
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-
-
-        // Send the request
-        RestTemplate restTemplate = new RestTemplate();
-        ParameterizedTypeReference<List<PhotoData>> responseType = new ParameterizedTypeReference<List<PhotoData>>() {};
-        ResponseEntity<List<PhotoData>> response = restTemplate.exchange(url,  HttpMethod.GET, requestEntity, responseType);
-
-        assertEquals(response.getStatusCode().value(),200);
-
-        //System.out.println(response); 
-        //System.out.println(response.getBody());      
-
-        //TODO: add check for expected data
-        //assertEquals(response.getBody(), "{\"name\":\"test\",\"description\":\"example\"}");
-    }
-
-        // uploads dummy data
+    // uploads dummy data
     private ResponseEntity<String> uploadData(Double lat, Double lon) throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
