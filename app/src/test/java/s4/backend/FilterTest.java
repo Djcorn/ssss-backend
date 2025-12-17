@@ -122,7 +122,7 @@ public class FilterTest {
         uploadBulkData();
         System.out.print("DATA UPLOADED");
     }
-/*
+
     @Test
     @Order(4)
     @DisplayName("Should use the /getimagesdata REST api to query the database but only recieve updated data that is inside the given LatLon box")
@@ -148,7 +148,6 @@ public class FilterTest {
         DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
         uriBuilder.setEncodingMode(EncodingMode.NONE); 
 
-        //URI uri = uriBuilder.uriString(url+"?startdate={value}").build("2007-12-03T10:15:30+B01:00");
         URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}").build(lat1, lon1, lat2, lon2);
 
         restTemplate.setUriTemplateHandler(uriBuilder);
@@ -238,11 +237,74 @@ public class FilterTest {
         assertEquals(7, viableData.size());
 
         //TODO: add check for specific data?
-    }
-*/
+    } 
+
     @Test
     @Order(5)
-    @DisplayName("Should use the /getimages REST api to query the database but only recieve updated data that is inside the given LatLon box")
+    @DisplayName("Should use the /getimages REST api to query the database but only recieve data that is inside the given LatLon box and after the given date")
+    void testGetImagesLatLonDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + IMAGES_ENDPOINT; 
+
+        Double lat1 = 90.0;
+        Double lon1 = 90.0;
+
+        Double lat2 = 110.0;
+        Double lon2 = 110.0;
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?latitude_1={value}&longitude_1={value}&latitude_2={value}&longitude_2={value}&startTime={value}").build(lat1, lon1, lat2, lon2, millisecondsSinceEpoch);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, requestEntity, byte[].class);
+        //System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        InputStream byteStream = new ByteArrayInputStream(response.getBody());
+        ZipInputStream zipStream = new ZipInputStream(byteStream);
+
+        List<String> fileNames = new ArrayList<>();
+        ZipEntry entry;
+        byte[] buffer = new byte[1024];
+        while ((entry = zipStream.getNextEntry()) != null) {
+            String fileName = "src/test/resources/"+entry.getName();
+            System.out.println(fileName);
+            fileNames.add(fileName);
+            FileOutputStream fos = new FileOutputStream(fileName);
+            
+            int len;
+            while((len = zipStream.read(buffer)) > 0){
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+        }
+
+        assertEquals(3, fileNames.size());
+
+        for (String name: fileNames){
+            File rep = new File(name);
+            assertTrue(rep.exists(), "Image file "+name+" unsuccessfully downloaded.");
+
+            rep.delete();
+        }   
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("Should use the /getimages REST api to query the database but only recieve data that is inside the given LatLon box")
     void testGetImagesLatLonFiltered() throws Exception{
         String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
         Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
@@ -293,8 +355,71 @@ public class FilterTest {
         }
 
         assertEquals(5, fileNames.size());
+
+        for (String name: fileNames){
+            File rep = new File(name);
+            assertTrue(rep.exists(), "Image file "+name+" unsuccessfully downloaded.");
+
+            rep.delete();
+        }   
     }
 
+    @Test
+    @Order(5)
+    @DisplayName("Should use the /getimages REST api to query the database but only recieve data after the given date")
+    void testGetImagesDateFiltered() throws Exception{
+        String host = composeContainer.getServiceHost(APP_NAME, APP_PORT);
+        Integer port = composeContainer.getServicePort(APP_NAME, APP_PORT);
+        String url = "http://" + host + ":" + port + IMAGES_ENDPOINT; 
+
+        //need headers specifically for the JWT
+        HttpHeaders headers = new HttpHeaders();
+        String jwtToken = generateJwtToken();
+        headers.set("Authorization", "Bearer " + jwtToken);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // Send the request
+        RestTemplate restTemplate = new RestTemplate();
+        DefaultUriBuilderFactory uriBuilder = new DefaultUriBuilderFactory();
+        uriBuilder.setEncodingMode(EncodingMode.NONE); 
+
+        Long millisecondsSinceEpoch = cutoffTime.toInstant().toEpochMilli();
+        URI uri = uriBuilder.uriString(url+"?startTime={value}").build(millisecondsSinceEpoch);
+
+        restTemplate.setUriTemplateHandler(uriBuilder);
+
+        ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, requestEntity, byte[].class);
+        //System.out.println(response);
+        assertEquals(response.getStatusCode().value(),200);
+
+        InputStream byteStream = new ByteArrayInputStream(response.getBody());
+        ZipInputStream zipStream = new ZipInputStream(byteStream);
+
+        List<String> fileNames = new ArrayList<>();
+        ZipEntry entry;
+        byte[] buffer = new byte[1024];
+        while ((entry = zipStream.getNextEntry()) != null) {
+            String fileName = "src/test/resources/"+entry.getName();
+            System.out.println(fileName);
+            fileNames.add(fileName);
+            FileOutputStream fos = new FileOutputStream(fileName);
+            
+            int len;
+            while((len = zipStream.read(buffer)) > 0){
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+        }
+
+        assertEquals(7, fileNames.size());
+
+        for (String name: fileNames){
+            File rep = new File(name);
+            assertTrue(rep.exists(), "Image file "+name+" unsuccessfully downloaded.");
+
+            rep.delete();
+        }   
+    }
 
     // uploads dummy data
     private ResponseEntity<String> uploadData(Double lat, Double lon) throws Exception{

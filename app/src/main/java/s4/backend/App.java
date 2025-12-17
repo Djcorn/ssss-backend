@@ -120,7 +120,21 @@ public class App {
           .body(data); 
     }
 
-    // TODO: add filter parameters
+    /**
+     * Queries the database for images related to all items that fit within the chosen filters 
+     * 
+     * @param startDateParameter - early bound on data (any data after this is valid), measured in milliseconds since epoch
+     * @param lat1Parameter      - bottom left box point latitutde
+     * @param lon1Parameter      - bottom left box point longitude
+     * @param lat2Parameter      - top right box point latitutde
+     * @param lon2Parameter      - top right box point longitude
+     * @param jwt   - the Json Web Token used during the authentication process
+     * 
+     * Note that all 4 of the Lat/Lon Parameters are needed for filtering by the Lat/Lon box. Include all 4 or nothing.
+     * 
+     * TODO: make the LatLon box a single parameter instead of 4 
+     * 
+     */
     @GetMapping(value="/getimages", produces="application/zip")
     public @ResponseBody ResponseEntity<byte[]> getImages(@RequestParam("startTime") Optional<Long> startDateParameter,
             @RequestParam("latitude_1") Optional<Double> lat1Parameter,
@@ -158,12 +172,22 @@ public class App {
         IOUtils.closeQuietly(bufferedOutputStream);
         IOUtils.closeQuietly(byteArrayOutputStream);
         
+        //TODO: change to stream response: https://www.baeldung.com/spring-boot-requestmapping-serve-zip
         return ResponseEntity
           .ok()
           .header("Content-Disposition", "attachment; filename=\"image_files.zip\"; paths:"+fileNames.toString())
           .body(byteArrayOutputStream.toByteArray());
     }
 
+     /**
+     * Upload an image and associated metadata
+     * 
+     * @param json  - String storing metadata in a json format
+     * @param image - image file to be saved to the file system (will be named after the id of uploaded json metadata)
+     * @param jwt   - the Json Web Token used during the authentication process
+     * 
+     * 
+     */
     @PostMapping("/upload")
     public @ResponseBody ResponseEntity<String> uploadData(@RequestPart("json") String json, 
                              @RequestPart("image") MultipartFile image, 
