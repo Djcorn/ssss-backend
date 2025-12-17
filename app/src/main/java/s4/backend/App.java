@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,10 +32,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -59,14 +59,69 @@ public class App {
         return "Hello World!";
     }
 
-    // TODO: add filter parameters: https://www.speakeasy.com/api-design/filtering-responses
+     /**
+     * Queries the database for metadata related to all items that fit within the chosen filters 
+     * 
+     * @param startDateParameter - early bound on data (any data after this is valid), measured in milliseconds since epoch
+     * @param lat1Parameter      - bottom left box point latitutde
+     * @param lon1Parameter      - bottom left box point longitude
+     * @param lat2Parameter      - top right box point latitutde
+     * @param lon2Parameter      - top right box point longitude
+     * 
+     * Note that all 4 of the Lat/Lon Parameters are needed for filtering by the Lat/Lon box. Include all 4 or nothing.
+     * 
+     * TODO: make the LatLon box a single parameter instead of 4 
+     * 
+     */
     @GetMapping(value="/getimagesdata")
-    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(@AuthenticationPrincipal Jwt jwt) 
-            throws IOException {
+    public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(
+            @RequestParam("startTime") Optional<Long> startDateParameter,
+            @RequestParam("latitude_1") Optional<Double> lat1Parameter,
+            @RequestParam("longitude_1") Optional<Double> lon1Parameter,
+            @RequestParam("latitude_2") Optional<Double> lat2Parameter,
+            @RequestParam("longitude_2") Optional<Double> lon2Parameter,
+            @AuthenticationPrincipal Jwt jwt) 
+                throws IOException {
+
+        Long startTimeInMilliSinceEpoch = startDateParameter.orElse(null);
+        Double lat1 = lat1Parameter.orElse(null);
+        Double lon1 = lon1Parameter.orElse(null);
+        Double lat2 = lat2Parameter.orElse(null);
+        Double lon2 = lon2Parameter.orElse(null);
+
+        List<PhotoData> data = new ArrayList<>();
+        String status = "";
+
+        if(lat1 != null && lon1 != null && lat2 != null && lon2 != null){
+            //there's a viable box, we can search
+            if(startTimeInMilliSinceEpoch != null){
+                data = photoDataRepo.findPhotoDataByLatLonBoxAfterDate(lat1, lon1, lat2, lon2, startTimeInMilliSinceEpoch);
+                status = "findPhotoDataByLatLonBoxAfterDate";
+            }
+            else{
+                status = "findPhotoDataByLatLonBox";
+                data = photoDataRepo.findPhotoDataByLatLonBox(lat1, lon1, lat2, lon2);
+            }
+        }
+        else if (startTimeInMilliSinceEpoch != null) {
+            data = photoDataRepo.findPhotoDataAfterDate(startTimeInMilliSinceEpoch);
+            status = "findPhotoDataAfterDate";
+        }
+        else if(lat1 != null || lon1 != null || lat2 != null || lon2 != null){
+            //some valid points but not all necessary point. 
+            //no valid filters but they tried so return error
+            //report error here?
+            status = "ERROR: NEED ALL 4 LAT & LON POINTS";
+        }
+        else{
+            data = photoDataRepo.findAll();
+            status = "findAll";
+        }
 
         return ResponseEntity
           .ok()
-          .body(photoDataRepo.findAll()); 
+          .header("QueryFunction",status)
+          .body(data); 
     }
 
     // TODO: add filter parameters
