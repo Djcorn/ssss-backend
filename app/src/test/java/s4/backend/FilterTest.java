@@ -281,7 +281,6 @@ public class FilterTest {
         byte[] buffer = new byte[1024];
         while ((entry = zipStream.getNextEntry()) != null) {
             String fileName = "src/test/resources/"+entry.getName();
-            System.out.println(fileName);
             fileNames.add(fileName);
             FileOutputStream fos = new FileOutputStream(fileName);
             
@@ -343,7 +342,6 @@ public class FilterTest {
         byte[] buffer = new byte[1024];
         while ((entry = zipStream.getNextEntry()) != null) {
             String fileName = "src/test/resources/"+entry.getName();
-            System.out.println(fileName);
             fileNames.add(fileName);
             FileOutputStream fos = new FileOutputStream(fileName);
             
@@ -389,7 +387,6 @@ public class FilterTest {
         restTemplate.setUriTemplateHandler(uriBuilder);
 
         ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, requestEntity, byte[].class);
-        //System.out.println(response);
         assertEquals(response.getStatusCode().value(),200);
 
         InputStream byteStream = new ByteArrayInputStream(response.getBody());
@@ -469,7 +466,6 @@ public class FilterTest {
 
         wait(1000);
         cutoffTime = ZonedDateTime.now();
-        //System.out.println(cutoffTime.toString());
         wait(1000);
 
 
