@@ -60,17 +60,22 @@ public class App {
         return "Hello World!";
     }
 
+     /**
+     * Queries the database for metadata related to all items that fit within the chosen filters 
+     * 
+     * @param startDateParameter - early bound on data (any data after this is valid), measured in milliseconds since epoch
+     * @param lat1Parameter      - bottom left box point latitutde
+     * @param lon1Parameter      - bottom left box point longitude
+     * @param lat2Parameter      - top right box point latitutde
+     * @param lon2Parameter      - top right box point longitude
+     * 
+     * Note that all 4 of the Lat/Lon Parameters are needed for filtering by the Lat/Lon box. Include all 4 or nothing.
+     * 
+     * TODO: make the LatLon box a single parameter instead of 4 
+     * 
+     */
     @GetMapping(value="/getimagesdata")
     public @ResponseBody ResponseEntity<List<PhotoData>> getImagesData(
-        /*** 
-         * 
-         * startDateParameter - early bound on data (any data after this is valid), measured in milliseconds since epoch
-         * lat1Parameter      - bottom left box point latitutde
-         * lon1Parameter      - bottom left box point longitude
-         * lat2Parameter      - top right box point latitutde
-         * lon2Parameter      - top right box point longitude
-         * 
-         * ***/
             @RequestParam("startTime") Optional<Long> startDateParameter,
             @RequestParam("latitude_1") Optional<Double> lat1Parameter,
             @RequestParam("longitude_1") Optional<Double> lon1Parameter,

@@ -12,8 +12,7 @@ import s4.backend.data.PhotoData;
 public interface PhotoDataRepository extends JpaRepository<PhotoData, Long>{
 
 
-    //CRITIAL NOTE: HOW DO YOU HANDLE WRAP AROUNDS?
-
+    //TODO: HOW DO YOU HANDLE WRAP AROUNDS? THAT'S GOING TO BE AN UNCOMMON CASE BUT IMPORTANT TO CONSIDER
     @Query(value = "SELECT * FROM photo_data WHERE latitude >= ?1 AND longitude >= ?2 AND latitude <= ?3 AND longitude <= ?4", nativeQuery = true)
     List<PhotoData> findPhotoDataByLatLonBox(Double latitude_1,
                                              Double longitude_1,
@@ -30,4 +29,5 @@ public interface PhotoDataRepository extends JpaRepository<PhotoData, Long>{
                                                       Double longitude_2,
                                                       Long startTimeInMilliSinceEpoch);    
     
+    //TODO: Add stopTimeInMilliSinceEpoch as an optional argument 
 }

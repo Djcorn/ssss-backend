@@ -26,7 +26,7 @@ public class PhotoData {
     public PhotoData(JSONObject jsonObject) {        
         this.upload_timestamp_in_milli_epoch = ZonedDateTime.now().toInstant().toEpochMilli();
 
-        this.taken_timestamp_in_milli_epoch = jsonObject.isNull("media_type")                ? null : jsonObject.getLong("timestamp");
+        this.taken_timestamp_in_milli_epoch = jsonObject.isNull("timestamp")                ? null : jsonObject.getLong("timestamp");
         this.media_type                     = jsonObject.isNull("media_type")                ? null : jsonObject.getString("media_type");
         this.latitude                       = jsonObject.isNull("latitude")                  ? null : jsonObject.getDouble("latitude");
         this.longitude                      = jsonObject.isNull("longitude")                 ? null : jsonObject.getDouble("longitude");
