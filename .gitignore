@@ -4,4 +4,4 @@ app/bin
 
 secrets/*
 
-app/src/test/resources/test.png
+app/src/test/resources/*.png
